@@ -128,5 +128,11 @@ class StateMachineUnitTest extends DrupalUnitTestCase {
     $this->assertEqual($this->machine->logs[2], 'on_exit', t('The on_exit callback should be the third callback executed.'));
     $this->assertEqual($this->machine->logs[3], 'on_enter', t('The on_enter callback should be the fourth callback executed.'));
     $this->assertEqual($this->machine->logs[4], 'after_transition', t('The after_transition callback should be the fifth callback executed.'));
+
+    $this->machine->fire_event('reset');
+    $events = $this->machine->get_available_events();
+    $this->assertTrue(in_array('goto2', $events), t('The machine should return a list of available events.'));
+    $this->assertTrue(in_array('goto3', $events), t('The machine should return a list of available events.'));
   }
+
 }

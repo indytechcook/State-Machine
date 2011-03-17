@@ -181,6 +181,19 @@ class StateMachine {
    */
   protected function on_event_fail($event) {
   }
+
+  /**
+   * Returns an array of events that are valid for the current state.
+   */
+  public function get_available_events() {
+    $events = array();
+    foreach (array_keys($this->events) as $key) {
+      if ($this->get_event($key)->can_transition_from($this->current)) {
+        $events[] = $key;
+      }
+    }
+    return $events;
+  }
 }
 
 class StateMachine_State {
@@ -257,6 +270,13 @@ class StateMachine_Event {
     if (!empty($this->options['after_transition'])) {
       call_user_func($this->options['after_transition']);
     }
+  }
+
+  /**
+   * Can this event be used to transition from the specified state?
+   */
+  public function can_transition_from($state) {
+    return in_array($state, $this->options['origin']);
   }
 }
 

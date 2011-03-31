@@ -1,0 +1,35 @@
+<?php
+// $Id $
+
+/**
+ * @file
+ * Install file for the state flow module.
+ *
+ *
+ */
+
+/**
+ * Implementation of hook_install().
+ */
+function state_flow_install() {
+  // Create tables.
+  drupal_install_schema('state_flow');
+
+  db_query("UPDATE {system} SET weight = 5 WHERE name = 'state_flow'");
+}
+
+/**
+ * Implementation of hook_schema().
+ */
+function state_flow_schema() {
+  $schema['state_flow_revisions'] = array(
+    'description' => t('Saves the current live vid of a node'),
+    'fields'  => array(
+      'vid'   => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'nid'   => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'state' => array('type' => 'varchar', 'length' => '255', 'not null' => FALSE),
+      'timestamp' => array('type' => 'datetime', 'not null' => TRUE),
+    ),
+    'primary key' => array('vid'),
+  );
+}

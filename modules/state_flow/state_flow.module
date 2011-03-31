@@ -1,0 +1,61 @@
+<?php
+/**
+ * @file
+ * A base implementation of the state machine class and its relationship to revisions
+ */
+
+/**
+ * Implementation of hook_nodeapi
+ *
+ * @param object $node
+ * @param string $op
+ * @param string $a3
+ * @param string $a4
+ */
+function state_flow_nodeapi(&$node, $op, $a3, $a4) {
+
+  $type = $node->type;
+
+  switch ($op) {
+    case 'insert':
+      break;
+    case 'update':
+      break;
+  }
+}
+
+/**
+ * Implementation of hook_menu_alter
+ * Change the edit link so the most recent revision is always edited
+ *
+ * @param array $items
+ */
+function state_flow_menu_alter(&$items) {
+  $items['node/%node/edit']['page callback'] = 'state_flow_node_edit';
+}
+
+/**
+ * Helper function to to load the lastest revision on node edit
+ *
+ * @param object $node
+ */
+function state_flow_node_edit($node) {
+  $vid = state_flow_latest_revision($node->nid);
+
+  //Load the latest revision if it doesn't match what is part of the node
+  if($node->vid != $vid) {
+    $node = node_load($node->nid, $vid);
+  }
+
+  return node_page_edit($node);
+}
+
+/**
+ * Helper function to query the latest vid
+ *
+ * @param int $nid
+ * @return int
+ */
+function state_flow_lastest_revision($nid) {
+  return db_result(db_query_slave('SELECT MAX(vid) FROM {node_revisions} WHERE nid = %d', $nid));
+}

@@ -40,7 +40,8 @@ function state_flow_menu_alter(&$items) {
  * @param object $node
  */
 function state_flow_node_edit($node) {
-  $vid = state_flow_latest_revision($node->nid);
+  $state_flow = new StateFlow($node);
+  $vid = $state_flow->get_latest_revision($node->nid);
 
   //Load the latest revision if it doesn't match what is part of the node
   if($node->vid != $vid) {

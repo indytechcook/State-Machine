@@ -22,14 +22,26 @@ function state_flow_install() {
  * Implementation of hook_schema().
  */
 function state_flow_schema() {
-  $schema['state_flow_revisions'] = array(
+  $schema['node_revision_states'] = array(
     'description' => t('Saves the current live vid of a node'),
     'fields'  => array(
       'vid'   => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
       'nid'   => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
       'state' => array('type' => 'varchar', 'length' => '255', 'not null' => FALSE),
+      'status' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
       'timestamp' => array('type' => 'datetime', 'not null' => TRUE),
     ),
     'primary key' => array('vid'),
   );
+
+  return $schema;
+}
+
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function state_flow_uninstall() {
+  // Remove tables.
+  drupal_uninstall_schema('state_flow');
 }

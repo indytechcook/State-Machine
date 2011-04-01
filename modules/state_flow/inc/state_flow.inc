@@ -3,6 +3,11 @@
 require_once('../../../inc/base.inc');
 
 class StateFlow extends StateMachine {
+
+  //Variables to use throughout functions
+  protected $vid;
+  protected $current_state;
+
   /**
    * Called from StateMachine::__construct to initialize the states and events.
    * Define two states.
@@ -27,28 +32,44 @@ class StateFlow extends StateMachine {
       'on_exit' => array($this, 'set_unpublished'),
     ));
 
-    // Draft to Publish
+    // Initialize events
     $this->create_event('to_publish', array(
       'origin' => 'draft',
       'target' => 'published',
     ));
 
-    // Publish to Draft
-    $this->create_event('to_draft', array(
-      'origin' => 'published',
-      'target' => 'draft',
-    ));
+    //Set commonly used values
+    $this->vid = $this->get_latest_revision($this->node->nid);
+    $this->current_state = $this->get_current_state();
+  }
+
+  public function persist() {
+    $result = drupal_write_record('node_revision_states', array($this->vid, $this->node->nid, $this->current_state, time(), 1));
+    return ($result !== FALSE) ? TRUE: FALSE;
   }
 
   public function set_published() {
+    $this->node->status = 1;
+    node_save($this->node);
+  }
 
+  public function set_unpublished() {
+    $this->node->status = 0;
+    node_save($this->node);
   }
 
   public function set_node_revision() {
-
+    $this->node->vid = $$this->vid;
+    node_save($this->node);
   }
 
   public function set_principle_revision() {
-
+    $result = db_result(db_query('UPDATE {node_revision_states} SET status = 0 WHERE nid = %d AND vid != %d', $this->node->nid, $this->vid));
+    return;
   }
+
+  public function get_latest_revision($nid) {
+    return db_result(db_query_slave('SELECT MAX(vid) FROM {node_revisions} WHERE nid = %d', $nid));
+  }
+
 }

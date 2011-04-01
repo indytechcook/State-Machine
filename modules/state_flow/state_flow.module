@@ -31,6 +31,9 @@ function state_flow_nodeapi(&$node, $op, $a3, $a4) {
         $state_flow->persist();
         state_flow_prevent_live_revision($node->nid);
         break;
+      case 'delete':
+        db_query('DELETE FROM {node_revision_states} WHERE nid = %d', $node->nid);
+        break;
     }
   }
 }

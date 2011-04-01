@@ -39,32 +39,32 @@ class StateFlow extends StateMachine {
     ));
 
     //Set commonly used values
-    $this->vid = $this->get_latest_revision($this->node->nid);
+    $this->vid = $this->get_latest_revision($this->object->nid);
     $this->current_state = $this->get_current_state();
   }
 
   public function persist() {
-    $result = drupal_write_record('node_revision_states', array($this->vid, $this->node->nid, $this->current_state, time(), 1));
+    $result = drupal_write_record('node_revision_states', array($this->vid, $this->object->nid, $this->current_state, time(), 1));
     return;
   }
 
   public function set_published() {
-    $this->node->status = 1;
-    node_save($this->node);
+    $this->object->status = 1;
+    node_save($this->object);
   }
 
   public function set_unpublished() {
-    $this->node->status = 0;
-    node_save($this->node);
+    $this->object->status = 0;
+    node_save($this->object);
   }
 
   public function set_node_revision() {
-    $this->node->vid = $$this->vid;
-    node_save($this->node);
+    $this->object->vid = $$this->vid;
+    node_save($this->object);
   }
 
   public function set_principle_revision() {
-    $result = db_result(db_query('UPDATE {node_revision_states} SET status = 0 WHERE nid = %d AND vid != %d', $this->node->nid, $this->vid));
+    $result = db_result(db_query('UPDATE {node_revision_states} SET status = 0 WHERE nid = %d AND vid != %d', $this->object->nid, $this->vid));
     return;
   }
 

@@ -4,6 +4,8 @@
  * A base implementation of the state machine class and its relationship to revisions
  */
 
+require_once('inc/state_flow.inc');
+
 /**
  * Implementation of hook_nodeapi
  *
@@ -15,12 +17,22 @@
 function state_flow_nodeapi(&$node, $op, $a3, $a4) {
 
   $type = $node->type;
+  $node_types = array(
+    'page',
+    'program',
+  );
 
-  switch ($op) {
-    case 'insert':
-      break;
-    case 'update':
-      break;
+  if(in_array($node->type, $node_types)) {
+    switch ($op) {
+      case 'insert':
+        $state_flow = new StateFlow($node);
+        $state_flow->persist();
+        break;
+      case 'update':
+        $state_flow = new StateFlow($node);
+        $state_flow->persist();
+        break;
+    }
   }
 }
 
@@ -49,14 +61,4 @@ function state_flow_node_edit($node) {
   }
 
   return node_page_edit($node);
-}
-
-/**
- * Helper function to query the latest vid
- *
- * @param int $nid
- * @return int
- */
-function state_flow_lastest_revision($nid) {
-  return db_result(db_query_slave('SELECT MAX(vid) FROM {node_revisions} WHERE nid = %d', $nid));
 }

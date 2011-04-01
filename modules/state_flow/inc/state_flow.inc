@@ -45,7 +45,7 @@ class StateFlow extends StateMachine {
 
   public function persist() {
     $result = drupal_write_record('node_revision_states', array($this->vid, $this->node->nid, $this->current_state, time(), 1));
-    return ($result !== FALSE) ? TRUE: FALSE;
+    return;
   }
 
   public function set_published() {
@@ -69,7 +69,8 @@ class StateFlow extends StateMachine {
   }
 
   public function get_latest_revision($nid) {
-    return db_result(db_query_slave('SELECT MAX(vid) FROM {node_revisions} WHERE nid = %d', $nid));
+    $result = db_result(db_query_slave('SELECT MAX(vid) FROM {node_revision_states} WHERE nid = %d AND status = 1', $nid));
+    return;
   }
 
 }

@@ -66,5 +66,40 @@ function state_flow_node_edit($node) {
 }
 
 function state_flow_prevent_live_revision($nid) {
-  //@TODO: Build function
+  /**
+   * Borrowed concept from content_moderation module
+   * Check our table for published vid
+   * If exists, update node table with that vid (join node_revision table to grab title, timestamp)
+   */
+  $revision_state = state_flow_live_revision($node->nid);
+
+  if($revision_state != NULL) {
+    /* Reset the title.
+    if($node->new_title !== false) {
+      db_query("UPDATE {node_revisions} SET title='%s' WHERE vid=%d",$node->new_title, $node->vid);
+    }
+    */
+
+    // Reset the revision
+    $live_version = state_flow_revision_info($revision_state['vid']);
+    db_query("UPDATE {node} SET vid = %d, changed = '%s', title = '%s' WHERE nid = %d", $live_version->vid, $live_version->timestamp, $live_version->title, $node->nid);
+  }
+}
+
+function state_flow_live_revision($nid) {
+  $state = 'published';
+  $query = "SELECT *
+            FROM {node_revision_states}
+            WHERE nid = %d AND state = '%s'
+            ORDER BY timestamp
+            DESC
+            LIMIT 1";
+  $revision_state = db_fetch_array(db_query($query, $nid));
+
+  return $revision_state;
+}
+
+function state_flow_revision_info($vid) {
+  $result = db_query('SELECT * FROM {node_revisions} WHERE vid = %d',$vid);
+  return db_fetch_object($result);
 }

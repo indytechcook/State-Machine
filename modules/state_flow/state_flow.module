@@ -15,14 +15,12 @@ require_once('inc/state_flow.inc');
  * @param string $a4
  */
 function state_flow_nodeapi(&$node, $op, $a3, $a4) {
-
   $type = $node->type;
   $node_types = array(
     'page',
     'program',
   );
-
-  if(in_array($node->type, $node_types)) {
+  if(in_array($type, $node_types)) {
     switch ($op) {
       case 'insert':
         $state_flow = new StateFlow($node);

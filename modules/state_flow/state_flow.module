@@ -4,7 +4,16 @@
  * A base implementation of the state machine class and its relationship to revisions
  */
 
-require_once('inc/state_flow.inc');
+/**
+ * Load the state_flow state_machine for the given node.
+ */
+function state_flow_load_state_machine($node) {
+  if (!class_exists('StateFlow')) {
+    require_once(drupal_get_path('state_flow') .'/inc/state_flow.inc');
+  }
+
+  return new StateFlow($node);
+}
 
 /**
  * Implementation of hook_nodeapi().
@@ -29,7 +38,7 @@ function state_flow_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
  * Implementation of hook_node_insert().
  */
 function state_flow_node_insert(&$node) {
-  $state_flow = new StateFlow($node);
+  $state_flow = state_flow_load_state_machine($node);
   $state_flow->persist();
 }
 
@@ -37,7 +46,7 @@ function state_flow_node_insert(&$node) {
  * Implementation of hook_node_update().
  */
 function state_flow_node_update(&$node){
-  $state_flow = new StateFlow($node);
+  $state_flow = state_flow_load_state_machine($node);
   $state_flow->persist();
   state_flow_prevent_live_revision($node->nid);
 }
@@ -72,7 +81,7 @@ function state_flow_menu_alter(&$items) {
  * @param object $node
  */
 function state_flow_node_edit($node) {
-  $state_flow = new StateFlow($node);
+  $state_flow = state_flow_load_state_machine($node);
   $vid = $state_flow->get_latest_revision($node->nid);
 
   //Load the latest revision if it doesn't match what is part of the node

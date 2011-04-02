@@ -1,6 +1,8 @@
 ; $Id $
 project = "state_flow"
-core = "6.x"
+core = "7.x"
 name = State Flow
 description = A base implementation of the State Machine
 package = "State Machine"
+files[] = inc/state_flow.inc
+files[] = tests/state_flow.test

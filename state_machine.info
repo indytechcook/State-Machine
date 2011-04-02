@@ -1,5 +1,5 @@
 name = State Machine
 description = Provides a Finite State Machine for Drupal entities.
-core = 7.x
+core = 6.x
 files[] = inc/base.inc
 files[] = tests/state_machine.test

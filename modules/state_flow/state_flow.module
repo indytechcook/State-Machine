@@ -7,35 +7,53 @@
 require_once('inc/state_flow.inc');
 
 /**
- * Implementation of hook_nodeapi
- *
- * @param object $node
- * @param string $op
- * @param string $a3
- * @param string $a4
+ * Implementation of hook_nodeapi().
  */
-function state_flow_nodeapi(&$node, $op, $a3, $a4) {
-  $type = $node->type;
-  $node_types = array(
-    'page',
-    'program',
-  );
-  if(in_array($type, $node_types)) {
-    switch ($op) {
-      case 'insert':
-        $state_flow = new StateFlow($node);
-        $state_flow->persist();
-        break;
-      case 'update':
-        $state_flow = new StateFlow($node);
-        $state_flow->persist();
-        state_flow_prevent_live_revision($node->nid);
-        break;
-      case 'delete':
-        db_query('DELETE FROM {node_revision_states} WHERE nid = %d', $node->nid);
-        break;
-    }
+function state_flow_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+  // Use Drupal 7 style node hooks.
+  switch ($op) {
+    case 'delete revision':
+      $node_hook = 'state_flow_node_revision_delete';
+      break;
+    case default:
+      $node_hook = 'state_flow_node_'. $op;
+      break;
   }
+
+  if (function_exists($node_hook)) {
+    return $node_hook($node, $a3, $a4);
+  }
+}
+
+/**
+ * Implementation of hook_node_insert().
+ */
+function state_flow_node_insert(&$node) {
+  $state_flow = new StateFlow($node);
+  $state_flow->persist();
+}
+
+/**
+ * Implementation of hook_node_update().
+ */
+function state_flow_node_update(&$node){
+  $state_flow = new StateFlow($node);
+  $state_flow->persist();
+  state_flow_prevent_live_revision($node->nid);
+}
+
+/**
+ * Implementation of hook_node_delete().
+ */
+function state_flow_node_delete(&$node) {
+  db_query('DELETE FROM {node_revision_states} WHERE nid = %d', $node->nid);
+}
+
+/**
+ * Implementation of hook_node_delete().
+ */
+function state_flow_node_revision_delete(&$node) {
+  db_query('DELETE FROM {node_revision_states} WHERE vid = %d', $node->vid);
 }
 
 /**

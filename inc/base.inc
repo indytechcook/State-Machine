@@ -241,6 +241,19 @@ class StateMachine_Event {
   }
 
   /**
+   * Validate the transition by processing the guard condition.
+   */
+  protected function validate() {
+    // Execute guard condition if it exists.
+    if (!empty($this->options['guard'])) {
+      if (call_user_func($this->options['guard'], $this) === FALSE) {
+        return FALSE;
+      }
+    }
+    return TRUE;
+  }
+
+  /**
    * Execute the event. Tests to make sure the current state is a valid origin
    * state, checks the guard condition, 
    */
@@ -249,11 +262,8 @@ class StateMachine_Event {
       return FALSE;
     }
 
-    // Execute guard condition if it exists.
-    if (!empty($this->options['guard'])) {
-      if (call_user_func($this->options['guard'], $this) === FALSE) {
-        return FALSE;
-      }
+    if (!$this->validate()) {
+      return FALSE;
     }
 
     if (!empty($this->options['before_transition'])) {

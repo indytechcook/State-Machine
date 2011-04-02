@@ -1,0 +1,57 @@
+<?php
+
+/**
+ * Unit tests for the StateFlow revision state machine.
+ */
+class StateFlowUnitTest extends DrupalUnitTestCase {
+  public static function getInfo() {
+    return array(
+      'name' => 'StateFlow basic tests',
+      'description' => 'Perform basic unit tests on the StateFlow revision state machine.',
+      'group' => 'State Machine',
+    );
+  }
+
+  function setup() {
+    parent::setup('state_machine', 'state_flow');
+
+    $machine = new StateFlow();
+    $this->machine = $machine;
+  }
+
+  /**
+   * Tests that drupal_html_class() cleans the class name properly.
+   */
+  function testStateMachine() {
+    $this->assertEqual($this->machine->get_current_state(), 'step1', t('Initial state should be the first defined state.'));
+
+    $this->machine->fire_event('goto2');
+    $this->assertEqual($this->machine->get_current_state(), 'step2', t('Current state should change when a valid event is fired.'));
+
+    $this->machine->fire_event('goto2');
+    $this->assertEqual($this->machine->get_current_state(), 'step2', t('Event should not execute if current state is not valid for the specified event.'));
+
+    $this->machine->fire_event('reset');
+    $this->assertEqual($this->machine->get_current_state(), 'step1', t('Event should allow transitions from multiple origins.'));
+
+    $current = $this->machine->get_current_state();
+    $this->machine->fire_event('dont_do_it');
+    $this->assertEqual($current, $this->machine->get_current_state(), t('State should not change when guard function returns FALSE.'));
+
+    $this->machine->fire_event('reset');
+    $this->machine->reset_logs();
+    $this->machine->fire_event('goto2_with_logs');
+
+    $this->assertEqual($this->machine->logs[0], 'guard', t('The guard condition should be the first callback executed.'));
+    $this->assertEqual($this->machine->logs[1], 'before_transition', t('The before_transition callback should be the second callback executed.'));
+    $this->assertEqual($this->machine->logs[2], 'on_exit', t('The on_exit callback should be the third callback executed.'));
+    $this->assertEqual($this->machine->logs[3], 'on_enter', t('The on_enter callback should be the fourth callback executed.'));
+    $this->assertEqual($this->machine->logs[4], 'after_transition', t('The after_transition callback should be the fifth callback executed.'));
+
+    $this->machine->fire_event('reset');
+    $events = $this->machine->get_available_events();
+    $this->assertTrue(in_array('goto2', $events), t('The machine should return a list of available events.'));
+    $this->assertTrue(in_array('goto3', $events), t('The machine should return a list of available events.'));
+  }
+
+}

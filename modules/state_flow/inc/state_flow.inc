@@ -1,6 +1,6 @@
 <?php
 
-require_once('../../../inc/base.inc');
+state_machine_load_class_file();
 
 class StateFlow extends StateMachine {
 
@@ -28,23 +28,36 @@ class StateFlow extends StateMachine {
     // Initialize states
     $this->create_state('draft');
     $this->create_state('published', array(
-      'on_enter' => array($this, 'set_published', 'set_node_revision', 'set_principle_revision'),
-      'on_exit' => array($this, 'set_unpublished'),
+      'on_enter' => array($this, 'on_enter_published'),
+      'on_exit' => array($this, 'on_exit_published'),
     ));
 
     // Initialize events
-    $this->create_event('to_publish', array(
+    $this->create_event('publish', array(
       'origin' => 'draft',
       'target' => 'published',
     ));
+  }
 
-    //Set commonly used values
-    $this->vid = $this->get_latest_revision($this->object->nid);
-    $this->current_state = $this->get_current_state();
+  public function on_enter_published() {
+    $this->set_published();
+    $this->set_node_revision();
+    $this->set_principle_revision();
+  }
+
+  public function on_exit_published() {
+    $this->set_unpublished();
   }
 
   public function persist() {
-    $result = drupal_write_record('node_revision_states', array($this->vid, $this->object->nid, $this->current_state, time(), 1));
+    // $data = array(
+    //   'vid' => $this->get_latest_revision($this->object->nid), 
+    //   'nid' => $this->object->nid, 
+    //   'state' => $this->get_current_state(), 
+    //   'timestamp' => time(), 
+    //   'status' => 1,
+    // );
+    // $result = drupal_write_record('node_revision_states', $data);
     return;
   }
 
@@ -59,18 +72,21 @@ class StateFlow extends StateMachine {
   }
 
   public function set_node_revision() {
-    $this->object->vid = $$this->vid;
-    node_save($this->object);
+    $vid = $this->get_latest_revision($this->object->nid);
+    if (!empty($vid) && ($vid != $this->object->vid)) {
+      $this->object->vid = $vid;
+      node_save($this->object);
+    }
   }
 
   public function set_principle_revision() {
-    $result = db_result(db_query('UPDATE {node_revision_states} SET status = 0 WHERE nid = %d AND vid != %d', $this->object->nid, $this->vid));
-    return;
+    // $result = db_result(db_query('UPDATE {node_revision_states} SET status = 0 WHERE nid = %d AND vid != %d', $this->object->nid, $this->get_latest_revision($this->object->nid)));
+    // return;
   }
 
   public function get_latest_revision($nid) {
-    $result = db_result(db_query_slave('SELECT MAX(vid) FROM {node_revision_states} WHERE nid = %d AND status = 1', $nid));
-    return;
+    $result = db_result(db_query_range_slave('SELECT vid FROM {node_revisions} WHERE nid = %d ORDER BY timestamp DESC', $nid, 0, 1));
+    return $result;
   }
 
 }

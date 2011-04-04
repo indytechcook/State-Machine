@@ -9,7 +9,7 @@
  */
 function state_flow_load_state_machine($node) {
   if (!class_exists('StateFlow')) {
-    require_once(drupal_get_path('state_flow') .'/inc/state_flow.inc');
+    require_once drupal_get_path('module', 'state_flow') .'/inc/state_flow.inc';
   }
 
   return new StateFlow($node);
@@ -24,7 +24,7 @@ function state_flow_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
     case 'delete revision':
       $node_hook = 'state_flow_node_revision_delete';
       break;
-    case default:
+    default:
       $node_hook = 'state_flow_node_'. $op;
       break;
   }

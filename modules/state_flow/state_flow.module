@@ -32,6 +32,13 @@ function state_flow_menu_alter(&$items) {
   $items['node/%node/edit']['page callback'] = 'state_flow_node_edit';
 }
 
+/**
+ * Implementation of hook_form_alter
+ *
+ * @param array $form
+ * @param array $form_state
+ * @param string $form_id
+ */
 function state_flow_form_alter(&$form, $form_state, $form_id) {
   $node = menu_get_object();
   $revision = state_flow_live_revision($node->nid);
@@ -114,6 +121,13 @@ function state_flow_get_states($nid) {
   return $states;
 }
 
+/**
+ * Custom form to show the states that are available
+ *
+ * @param array $form_state
+ * @param object $state_flow
+ * @return array
+ */
 function state_flow_states_form(&$form_state, $state_flow) {
   $form = array();
   $current_state = $state_flow->get_current_state();
@@ -140,6 +154,12 @@ function state_flow_states_form(&$form_state, $state_flow) {
   return $form;
 }
 
+/**
+ * Implementation of hook_form_submit
+ *
+ * @param array $form
+ * @param array $form_state
+ */
 function state_flow_states_form_submit($form, &$form_state) {
   $state = $form_state['values']['state'];
   $state_flow = $form_state['values']['state_flow'];

@@ -108,6 +108,9 @@ class StateFlow extends StateMachine {
 
   /**
    * Returns the current state.
+   * Modified so that it checks the table for the latest state
+   * for that node instead of assuming its the first state
+   * as in the base class.
    */
   public function get_current_state() {
     if (!$this->current) {

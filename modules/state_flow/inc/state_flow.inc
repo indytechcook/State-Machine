@@ -1,4 +1,10 @@
 <?php
+// $Id$
+
+/**
+ * @file
+ * State Flow implementation of the State Machine class
+ */
 
 state_machine_load_class_file();
 
@@ -51,10 +57,10 @@ class StateFlow extends StateMachine {
 
   public function persist() {
     // $data = array(
-    //   'vid' => $this->get_latest_revision($this->object->nid), 
-    //   'nid' => $this->object->nid, 
-    //   'state' => $this->get_current_state(), 
-    //   'timestamp' => time(), 
+    //   'vid' => $this->get_latest_revision($this->object->nid),
+    //   'nid' => $this->object->nid,
+    //   'state' => $this->get_current_state(),
+    //   'timestamp' => time(),
     //   'status' => 1,
     // );
     // $result = drupal_write_record('node_revision_states', $data);

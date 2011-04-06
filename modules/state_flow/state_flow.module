@@ -5,6 +5,91 @@
  */
 
 /**
+ * Implementation of hook_menu().
+ *
+ */
+function state_flow_menu() {
+  $items = array();
+  $items["node/%node/states"] = array(
+      'title' => 'States',
+      'description' => 'The states of the node.',
+      'type' => MENU_LOCAL_TASK,
+      'page callback' => 'state_flow_states',
+      'page arguments' => array(1),
+      'access callback' => array('access content'),
+  );
+  return $items;
+}
+
+/**
+ * Implementation of hook_theme()
+ *
+ * @return array
+ */
+function state_flow_theme() {
+  return array(
+    'state_flow_states' => array(
+      'arguments' => array('states' => NULL),
+    ),
+  );
+}
+
+/**
+ * Theme function to show states of a node
+ *
+ * @param array $states
+ * @return string
+ */
+function theme_state_flow_states($states) {
+  $header = array(
+    t('Vid'),
+    t('Nid'),
+    t('State'),
+    t('Timestamp'),
+  );
+
+  $rows = array();
+  foreach($states as $state) {
+    $rows[] = array (
+      $state->vid,
+      $state->nid,
+      $state->state,
+      $state->timestamp,
+    );
+  }
+
+  return theme('table', $header, $rows);
+}
+
+/**
+ * Show the states as a node tab
+ *
+ * @param object $node
+ * @return array
+ */
+function state_flow_states($node) {
+  $states = state_flow_get_states($node->nid);
+  drupal_set_title(t('States'));
+  return theme('state_flow_states', $states);
+}
+
+/**
+ * Retrieve the states history for a node
+ *
+ * @param int $nid
+ * @return array
+ */
+function state_flow_get_states($nid) {
+  $query = "SELECT * FROM {node_revision_states} WHERE nid = %d AND status = 1";
+  $result = db_query($query ,$nid);
+  $states = array();
+  while ($record = db_fetch_object($result)) {
+    $states[] = $record;
+  }
+  return $states;
+}
+
+/**
  * Load the state_flow state_machine for the given node.
  */
 function state_flow_load_state_machine($node) {

@@ -3,6 +3,7 @@ project = "state_flow"
 core = "6.x"
 name = State Flow
 description = A base implementation of the State Machine
+dependencies[] = state_machine
 package = "State Machine"
 files[] = inc/state_flow.inc
 files[] = tests/state_flow.test

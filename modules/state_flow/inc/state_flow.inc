@@ -56,14 +56,14 @@ class StateFlow extends StateMachine {
   }
 
   public function persist() {
-    // $data = array(
-    //   'vid' => $this->get_latest_revision($this->object->nid),
-    //   'nid' => $this->object->nid,
-    //   'state' => $this->get_current_state(),
-    //   'timestamp' => time(),
-    //   'status' => 1,
-    // );
-    // $result = drupal_write_record('node_revision_states', $data);
+    $data = array(
+      'vid' => $this->get_latest_revision($this->object->nid),
+      'nid' => $this->object->nid,
+      'state' => $this->get_current_state(),
+      'timestamp' => time(),
+      'status' => 1,
+    );
+    $result = drupal_write_record('node_revision_states', $data);
     return;
   }
 
@@ -86,8 +86,8 @@ class StateFlow extends StateMachine {
   }
 
   public function set_principle_revision() {
-    // $result = db_result(db_query('UPDATE {node_revision_states} SET status = 0 WHERE nid = %d AND vid != %d', $this->object->nid, $this->get_latest_revision($this->object->nid)));
-    // return;
+    $result = db_result(db_query('UPDATE {node_revision_states} SET status = 0 WHERE nid = %d AND vid != %d', $this->object->nid, $this->get_latest_revision($this->object->nid)));
+    return;
   }
 
   public function get_latest_revision($nid) {

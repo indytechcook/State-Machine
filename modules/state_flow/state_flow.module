@@ -10,15 +10,25 @@
  */
 function state_flow_menu() {
   $items = array();
-  $items["node/%node/states"] = array(
+  $items['node/%node/states'] = array(
       'title' => 'States',
       'description' => 'The states of the node.',
       'type' => MENU_LOCAL_TASK,
       'page callback' => 'state_flow_states',
       'page arguments' => array(1),
-      'access callback' => array('access content'),
+      'access callback' => TRUE,
   );
   return $items;
+}
+
+/**
+ * Implementation of hook_menu_alter
+ * Change the edit link so the most recent revision is always edited
+ *
+ * @param array $items
+ */
+function state_flow_menu_alter(&$items) {
+  $items['node/%node/edit']['page callback'] = 'state_flow_node_edit';
 }
 
 /**
@@ -151,16 +161,6 @@ function state_flow_node_revision_delete(&$node) {
 }
 
 /**
- * Implementation of hook_menu_alter
- * Change the edit link so the most recent revision is always edited
- *
- * @param array $items
- */
-function state_flow_menu_alter(&$items) {
-  $items['node/%node/edit']['page callback'] = 'state_flow_node_edit';
-}
-
-/**
  * Helper function to to load the lastest revision on node edit
  *
  * @param object $node
@@ -183,7 +183,7 @@ function state_flow_prevent_live_revision($nid) {
    * Check our table for published vid
    * If exists, update node table with that vid (join node_revision table to grab title, timestamp)
    */
-  $revision_state = state_flow_live_revision($node->nid);
+  $revision_state = state_flow_live_revision($nid);
 
   if($revision_state != NULL) {
     /* Reset the title.

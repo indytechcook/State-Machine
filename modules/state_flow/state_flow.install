@@ -29,7 +29,7 @@ function state_flow_schema() {
       'nid'   => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
       'state' => array('type' => 'varchar', 'length' => '255', 'not null' => FALSE),
       'status' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
-      'timestamp' => array('type' => 'datetime', 'not null' => TRUE),
+      'timestamp' => array('type' => 'int', 'unsigned' => TRUE, 'not null', TRUE, 'default' => 0),
     ),
     'primary key' => array('vid'),
   );

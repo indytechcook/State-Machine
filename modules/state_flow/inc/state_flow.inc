@@ -9,11 +9,6 @@
 state_machine_load_class_file();
 
 class StateFlow extends StateMachine {
-
-  //Variables to use throughout functions
-  protected $vid;
-  protected $current_state;
-
   /**
    * Called from StateMachine::__construct to initialize the states and events.
    * Define two states.
@@ -56,14 +51,19 @@ class StateFlow extends StateMachine {
   }
 
   public function persist() {
+    $vid = $this->get_latest_revision($this->object->nid);
+    $nid = $this->object->nid;
+    $state = $this->get_current_state();
+
     $data = array(
-      'vid' => $this->get_latest_revision($this->object->nid),
-      'nid' => $this->object->nid,
-      'state' => $this->get_current_state(),
+      'vid' => $vid,
+      'nid' => $nid,
+      'state' => $state,
       'timestamp' => time(),
       'status' => 1,
     );
-    $result = drupal_write_record('node_revision_states', $data);
+    $update = ($this->existing_revision($nid, $vid)) ? array('vid') : NULL;
+    $result = drupal_write_record('node_revision_states', $data, $update);
     return;
   }
 
@@ -86,13 +86,38 @@ class StateFlow extends StateMachine {
   }
 
   public function set_principle_revision() {
-    $result = db_result(db_query('UPDATE {node_revision_states} SET status = 0 WHERE nid = %d AND vid != %d', $this->object->nid, $this->get_latest_revision($this->object->nid)));
+    $nid = $this->object->nid;
+    $vid = $this->get_latest_revision($nid);
+    $result = db_result(db_query('UPDATE {node_revision_states} SET status = 0 WHERE nid = %d AND vid != %d', $nid, $vid));
     return;
   }
 
   public function get_latest_revision($nid) {
     $result = db_result(db_query_range_slave('SELECT vid FROM {node_revisions} WHERE nid = %d ORDER BY timestamp DESC', $nid, 0, 1));
     return $result;
+  }
+
+  public function available_states() {
+    return $this->states;
+  }
+
+  public function existing_revision($nid, $vid) {
+    $result = db_result(db_query('SELECT COUNT(*) FROM {node_revision_states} WHERE nid = %d AND vid = %d', $nid, $vid));
+    return ($result) ? TRUE : FALSE;
+  }
+
+  /**
+   * Returns the current state.
+   */
+  public function get_current_state() {
+    if (!$this->current) {
+      $this->current = ($this->latest_state($this->object->nid)) ? $this->latest_state($this->object->nid) : key($this->states);
+    }
+    return $this->current;
+  }
+
+  public function latest_state($nid) {
+    return db_result(db_query('SELECT state FROM {node_revision_states} WHERE nid = %d AND status = 1 ORDER BY timestamp DESC LIMIT 1', $nid));
   }
 
 }

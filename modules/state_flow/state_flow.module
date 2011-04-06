@@ -79,8 +79,13 @@ function theme_state_flow_states($states) {
  */
 function state_flow_states($node) {
   $states = state_flow_get_states($node->nid);
+  $state_flow = state_flow_load_state_machine($node);
   drupal_set_title(t('States'));
-  return theme('state_flow_states', $states);
+
+  $output = drupal_get_form('state_flow_states_form', $state_flow);
+  $output .= theme('state_flow_states', $states);
+
+  return $output;
 }
 
 /**
@@ -97,6 +102,41 @@ function state_flow_get_states($nid) {
     $states[] = $record;
   }
   return $states;
+}
+
+function state_flow_states_form(&$form_state, $state_flow) {
+  $form = array();
+  $current_state = $state_flow->get_current_state();
+  $states = array_keys($state_flow->available_states());
+  $states = array_combine(array_values($states), $states);
+
+  $form['state'] = array(
+    '#type' => 'radios',
+    '#title' => t('Change state'),
+    '#default_value' => $current_state,
+    '#options' => $states,
+  );
+
+  $form['state_flow'] = array(
+    '#type' => 'hidden',
+    '#value' => $state_flow,
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Update'),
+  );
+
+  return $form;
+}
+
+function state_flow_states_form_submit($form, &$form_state) {
+  $state = $form_state['values']['state'];
+  $state_flow = $form_state['values']['state_flow'];
+  if($state == 'published') {
+    $state_flow->fire_event('publish');
+  }
+  drupal_set_message(t('Node transitioned to @state state.', array('@state' => $state)));
 }
 
 /**

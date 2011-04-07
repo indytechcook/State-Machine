@@ -119,8 +119,8 @@ class StateFlow extends StateMachine {
     return $this->current;
   }
 
-  public function latest_state($nid) {
-    return db_result(db_query('SELECT state FROM {node_revision_states} WHERE nid = %d AND status = 1 ORDER BY timestamp DESC LIMIT 1', $nid));
+  public function latest_state($nid, $vid) {
+    return db_result(db_query('SELECT state FROM {node_revision_states} WHERE nid = %d AND status = 1 AND vid = %d ORDER BY timestamp DESC LIMIT 1', $nid, $this->get_latest_revision($nid));
   }
 
 }

@@ -67,6 +67,10 @@ class StateFlow extends StateMachine {
     return;
   }
 
+  public function load() {
+    return $this->latest_state($this->object->nid);
+  }
+
   public function set_published() {
     $this->object->status = 1;
     node_save($this->object);
@@ -97,30 +101,18 @@ class StateFlow extends StateMachine {
     return $result;
   }
 
-  public function available_states() {
-    return $this->states;
-  }
-
   public function existing_revision($nid, $vid) {
     $result = db_result(db_query('SELECT COUNT(*) FROM {node_revision_states} WHERE nid = %d AND vid = %d', $nid, $vid));
     return ($result) ? TRUE : FALSE;
   }
 
-  /**
-   * Returns the current state.
-   * Modified so that it checks the table for the latest state
-   * for that node instead of assuming its the first state
-   * as in the base class.
-   */
-  public function get_current_state() {
-    if (!$this->current) {
-      $this->current = ($this->latest_state($this->object->nid)) ? $this->latest_state($this->object->nid) : key($this->states);
-    }
-    return $this->current;
+  public function latest_state($nid) {
+    $query = "SELECT state
+              FROM {node_revision_states}
+              WHERE nid = %d AND status = 1 AND vid = %d
+              ORDER BY timestamp
+              DESC
+              LIMIT 1";
+    return db_result(db_query($query, $nid, $this->get_latest_revision($nid)));
   }
-
-  public function latest_state($nid, $vid) {
-    return db_result(db_query('SELECT state FROM {node_revision_states} WHERE nid = %d AND status = 1 AND vid = %d ORDER BY timestamp DESC LIMIT 1', $nid, $this->get_latest_revision($nid));
-  }
-
 }

@@ -10,11 +10,11 @@
  */
 function state_flow_menu() {
   $items = array();
-  $items['node/%node/states'] = array(
-      'title' => 'States',
-      'description' => 'The states of the node.',
+  $items['node/%node/events'] = array(
+      'title' => 'Events',
+      'description' => 'The available events',
       'type' => MENU_LOCAL_TASK,
-      'page callback' => 'state_flow_states',
+      'page callback' => 'state_flow_events',
       'page arguments' => array(1),
       'access callback' => TRUE,
       'weight' => 10,
@@ -94,12 +94,12 @@ function theme_state_flow_states($states) {
  * @param object $node
  * @return array
  */
-function state_flow_states($node) {
+function state_flow_events($node) {
   $states = state_flow_get_states($node->nid);
   $state_flow = state_flow_load_state_machine($node);
   drupal_set_title(t('States'));
 
-  $output = drupal_get_form('state_flow_states_form', $state_flow);
+  $output = ($state_flow->get_current_state() != 'published') ? drupal_get_form('state_flow_events_form', $state_flow) : t('No events to fire');
   $output .= theme('state_flow_states', $states);
 
   return $output;
@@ -122,23 +122,21 @@ function state_flow_get_states($nid) {
 }
 
 /**
- * Custom form to show the states that are available
+ * Custom form to show the events that are available
  *
  * @param array $form_state
  * @param object $state_flow
  * @return array
  */
-function state_flow_states_form(&$form_state, $state_flow) {
+function state_flow_events_form(&$form_state, $state_flow) {
   $form = array();
-  $current_state = $state_flow->get_current_state();
-  $states = array_keys($state_flow->available_states());
-  $states = array_combine(array_values($states), $states);
+  $events = $state_flow->get_available_events();
+  $events = array_combine(array_values($events), $events);
 
-  $form['state'] = array(
+  $form['events'] = array(
     '#type' => 'radios',
-    '#title' => t('Change state'),
-    '#default_value' => $current_state,
-    '#options' => $states,
+    '#title' => t('Fire event'),
+    '#options' => $events,
   );
 
   $form['state_flow'] = array(
@@ -160,12 +158,10 @@ function state_flow_states_form(&$form_state, $state_flow) {
  * @param array $form
  * @param array $form_state
  */
-function state_flow_states_form_submit($form, &$form_state) {
-  $state = $form_state['values']['state'];
+function state_flow_events_form_submit($form, &$form_state) {
+  $event = $form_state['values']['events'];
   $state_flow = $form_state['values']['state_flow'];
-  if($state == 'published') {
-    $state_flow->fire_event('publish');
-  }
+  $state_flow->fire_event($event);
   drupal_set_message(t('Node transitioned to @state state.', array('@state' => $state)));
 }
 
@@ -197,6 +193,15 @@ function state_flow_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
   if (function_exists($node_hook)) {
     return $node_hook($node, $a3, $a4);
   }
+}
+
+/**
+ * Implementation of hook_node_persave()
+ *
+ * @param object $node
+ */
+function state_flow_node_presave(&$node) {
+
 }
 
 /**

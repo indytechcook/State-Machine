@@ -10,7 +10,7 @@ class StateMachine {
   public function __construct($object = NULL) {
     $this->object = $object;
     $this->init();
-    $this->set_current_state($this->load());
+    $this->set_current_state((string) $this->load());
   }
 
   /**

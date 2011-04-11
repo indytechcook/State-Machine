@@ -97,7 +97,6 @@ function theme_state_flow_states($states) {
 function state_flow_events($node) {
   $states = state_flow_get_states($node->nid);
   $state_flow = state_flow_load_state_machine($node);
-  drupal_set_title(t('States'));
 
   $output = ($state_flow->get_current_state() != 'published') ? drupal_get_form('state_flow_events_form', $state_flow) : t('No events to fire');
   $output .= theme('state_flow_states', $states);
@@ -196,12 +195,16 @@ function state_flow_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
 }
 
 /**
- * Implementation of hook_node_persave()
+ * Implementation of hook_node_presave()
  *
  * @param object $node
  */
 function state_flow_node_presave(&$node) {
-
+  $state_flow = state_flow_load_state_machine($node);
+  if($state_flow->get_current_state() == 'published') {
+    //force revision
+    $node->revision = TRUE;
+  }
 }
 
 /**
@@ -269,7 +272,7 @@ function state_flow_prevent_live_revision($nid) {
 
     // Reset the revision
     $live_version = state_flow_revision_info($revision_state['vid']);
-    db_query("UPDATE {node} SET vid = %d, changed = '%s', title = '%s' WHERE nid = %d", $live_version->vid, $live_version->timestamp, $live_version->title, $node->nid);
+    db_query("UPDATE {node} SET vid = %d, changed = '%s', title = '%s' WHERE nid = %d", $live_version->vid, $live_version->timestamp, $live_version->title, $nid);
   }
 }
 

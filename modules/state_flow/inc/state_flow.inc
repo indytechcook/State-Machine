@@ -73,19 +73,22 @@ class StateFlow extends StateMachine {
 
   public function set_published() {
     $this->object->status = 1;
-    node_save($this->object);
+    //node_save($this->object);
+    drupal_write_record('node', $this->object, 'nid');
   }
 
   public function set_unpublished() {
     $this->object->status = 0;
-    node_save($this->object);
+    //node_save($this->object);
+    drupal_write_record('node', $this->object, 'nid');
   }
 
   public function set_node_revision() {
     $vid = $this->get_latest_revision($this->object->nid);
     if (!empty($vid) && ($vid != $this->object->vid)) {
       $this->object->vid = $vid;
-      node_save($this->object);
+      //node_save($this->object);
+      drupal_write_record('node', $this->object, 'nid');
     }
   }
 
@@ -98,11 +101,6 @@ class StateFlow extends StateMachine {
 
   public function get_latest_revision($nid) {
     $result = db_result(db_query_slave('SELECT MAX(vid) FROM {node_revisions} WHERE nid = %d', $nid));
-    return $result;
-  }
-
-  public function get_current_revision($nid) {
-    $result = db_result(db_query_slave('SELECT vid FROM {node_revision_states} WHERE nid = %d ORDER BY timestamp DESC', $nid, 0, 1));
     return $result;
   }
 

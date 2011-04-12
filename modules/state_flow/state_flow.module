@@ -203,9 +203,7 @@ function state_flow_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
 function state_flow_node_presave(&$node) {
   $state_flow = state_flow_load_state_machine($node);
   $state = $state_flow->get_current_state();
-  $latest_vid = $state_flow->get_latest_revision($node->nid);
-  $current_vid = $state_flow->get_current_revision($node->nid);
-  if(($state == 'published') && ($latest_vid == $current_vid) && ($node->created != $node->changed)) {
+  if($state == 'published') {
     //force revision
     $node->revision = TRUE;
   }

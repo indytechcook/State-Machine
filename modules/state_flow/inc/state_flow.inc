@@ -95,7 +95,7 @@ class StateFlow extends StateMachine {
   public function set_principle_revision() {
     $nid = $this->object->nid;
     $vid = $this->get_latest_revision($nid);
-    $result = db_result(db_query('UPDATE {node_revision_states} SET status = 0 WHERE nid = %d AND vid != %d', $nid, $vid));
+    $result = db_query('UPDATE {node_revision_states} SET status = 0 WHERE nid = %d AND vid != %d', $nid, $vid);
     return;
   }
 
@@ -116,6 +116,6 @@ class StateFlow extends StateMachine {
               ORDER BY timestamp
               DESC
               LIMIT 1";
-    return db_result(db_query($query, $nid, $this->get_latest_revision($nid)));
+    return db_result(db_query_slave($query, $nid, $this->get_latest_revision($nid)));
   }
 }

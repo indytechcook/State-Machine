@@ -37,15 +37,24 @@ class StateFlowUnitTest extends DrupalWebTestCase {
 
     //edit node (new title)
     //submit node, confirm creation
-    //insure new title not present
+    //insure new title is updated, but not currently visible
+    $old_title = $node->title;
     $edit = array();
     $edit['title'] = $this->randomName(8);
     $this->drupalPost("node/{$node->nid}/edit", $edit, t('Save'));
-    $this->assertText(t('Program program @title has been updated.', array('@title' => $edit['title'])));
+    $this->assertTitle($old_title, t('Node title should stay the original despite the update.'));
+    $this->assertText(t('Program program @title has been updated.', array('@title' => $edit['title'])), t('The new node title should be saved.'));
 
-    //check state of second revision; should be draft
+    //check state of second revision
+    //should be draft
+    $this->assertEqual($machine->get_current_state(), 'draft', t('Updated published nodes should default to the "draft" state for their latest revision.'));
 
-    //publish second revision; insure first revision is not active; check new title is now public
+    //publish second revision
+    //insure first revision is not active
+    //check new title is now public
+    $machine->fire_event('publish');
+    $this->assertEqual($machine->get_current_state(), 'published', t('State should be "published" after firing the "publish" event.'));
+    $this->assertTitle($edit['title'], t('Node title should be updated to second revision, now published.'));
   }
 
 }

@@ -172,8 +172,19 @@ function state_flow_load_state_machine($node) {
   if (!class_exists('StateFlow')) {
     require_once drupal_get_path('module', 'state_flow') .'/inc/state_flow.inc';
   }
+  $hook = 'load_state_machine';
+  foreach (module_implements($hook) as $module) {
+    if($module == 'state_flow') {
+      continue;
+    }
+    $function = $module . '_' . $hook;
+    $object = $function($node);
+  }
+  if(!($object)) {
+    $object = new StateFlow($node);
+  }
 
-  return new StateFlow($node);
+  return $object;
 }
 
 /**

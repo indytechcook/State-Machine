@@ -10,6 +10,7 @@ class StateMachine {
   public function __construct($object = NULL) {
     $this->object = $object;
     $this->init();
+    $this->set_current_state((string) $this->load());
   }
 
   /**
@@ -22,6 +23,12 @@ class StateMachine {
    * Persist the current state to the object storage.
    */
   protected function persist() {}
+
+  /**
+   * Load the current state from the given state storage
+   *
+   */
+  protected function load() {}
 
   /**
    * Create a new state. This method does not actually create a state instance,
@@ -110,7 +117,7 @@ class StateMachine {
    *   - origin: A key or array of keys representing the valid origin state(s)
    *     for this event.
    *   - target: The key of the state which this event will transition to.
-   *   - guard: A callback to be fired before the event. If this function 
+   *   - guard: A callback to be fired before the event. If this function
    *     returns FALSE, the event will be cancelled.
    *   - before_transition: A callback to be fired after the guard condition,
    *     but before the transition.
@@ -255,7 +262,7 @@ class StateMachine_Event {
 
   /**
    * Execute the event. Tests to make sure the current state is a valid origin
-   * state, checks the guard condition, 
+   * state, checks the guard condition,
    */
   public function execute() {
     if (!in_array($this->machine->get_current_state(), $this->options['origin'])) {

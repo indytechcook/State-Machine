@@ -10,11 +10,11 @@
  */
 function state_flow_menu() {
   $items = array();
-  $items['node/%node/states'] = array(
-      'title' => 'States',
-      'description' => 'The states of the node.',
+  $items['node/%node/events'] = array(
+      'title' => 'Events',
+      'description' => 'The available events',
       'type' => MENU_LOCAL_TASK,
-      'page callback' => 'state_flow_states',
+      'page callback' => 'state_flow_events',
       'page arguments' => array(1),
       'access callback' => TRUE,
       'weight' => 10,
@@ -40,7 +40,7 @@ function state_flow_menu_alter(&$items) {
  * @param string $form_id
  */
 function state_flow_form_alter(&$form, $form_state, $form_id) {
-  $node = menu_get_object();
+  $node = (object) menu_get_object();
   $revision = state_flow_live_revision($node->nid);
   if($revision != FALSE) {
     $form['revision_information']['revision']['#disabled'] = true;
@@ -94,12 +94,12 @@ function theme_state_flow_states($states) {
  * @param object $node
  * @return array
  */
-function state_flow_states($node) {
+function state_flow_events($node) {
   $states = state_flow_get_states($node->nid);
   $state_flow = state_flow_load_state_machine($node);
-  drupal_set_title(t('States'));
+  drupal_set_title('Events');
 
-  $output = drupal_get_form('state_flow_states_form', $state_flow);
+  $output = ($state_flow->get_current_state() != 'published') ? drupal_get_form('state_flow_events_form', $state_flow) : t('No events to fire');
   $output .= theme('state_flow_states', $states);
 
   return $output;
@@ -122,27 +122,25 @@ function state_flow_get_states($nid) {
 }
 
 /**
- * Custom form to show the states that are available
+ * Custom form to show the events that are available
  *
  * @param array $form_state
- * @param object $state_flow
+ * @param object $node
  * @return array
  */
-function state_flow_states_form(&$form_state, $state_flow) {
+function state_flow_events_form(&$form_state, $state_flow) {
   $form = array();
-  $current_state = $state_flow->get_current_state();
-  $states = array_keys($state_flow->available_states());
-  $states = array_combine(array_values($states), $states);
+  $events = $state_flow->get_available_events();
+  $events = array_combine(array_values($events), $events);
 
-  $form['state'] = array(
+  $form['events'] = array(
     '#type' => 'radios',
-    '#title' => t('Change state'),
-    '#default_value' => $current_state,
-    '#options' => $states,
+    '#title' => t('Fire event'),
+    '#options' => $events,
   );
 
-  $form['state_flow'] = array(
-    '#type' => 'hidden',
+  $form['nid'] = array(
+    '#type' => 'value',
     '#value' => $state_flow,
   );
 
@@ -160,12 +158,11 @@ function state_flow_states_form(&$form_state, $state_flow) {
  * @param array $form
  * @param array $form_state
  */
-function state_flow_states_form_submit($form, &$form_state) {
-  $state = $form_state['values']['state'];
+function state_flow_events_form_submit($form, &$form_state) {
+  $event = $form_state['values']['events'];
   $state_flow = $form_state['values']['state_flow'];
-  if($state == 'published') {
-    $state_flow->fire_event('publish');
-  }
+  $state_flow->fire_event($event);
+  $state = $state_flow->get_current_state();
   drupal_set_message(t('Node transitioned to @state state.', array('@state' => $state)));
 }
 
@@ -173,11 +170,69 @@ function state_flow_states_form_submit($form, &$form_state) {
  * Load the state_flow state_machine for the given node.
  */
 function state_flow_load_state_machine($node) {
-  if (!class_exists('StateFlow')) {
-    require_once drupal_get_path('module', 'state_flow') .'/inc/state_flow.inc';
-  }
+  static $object = array();
 
-  return new StateFlow($node);
+  if (!isset($object[$node->vid])) {
+    ctools_include('plugins');
+    $plugins = ctools_get_plugins('state_flow', 'plugins');
+    $default_types = node_get_types();
+
+    foreach ($plugins as $key => $info) {
+      $class = $info['handler']['class'];
+      $types = variable_get("state_flow_{$key}", array());
+
+      if (!empty($types)) {
+        $default_types = array_diff($default_types, $types);
+
+        foreach ($types as $type) {
+          $object[$node->vid] = new $class($node);
+        }
+
+      }
+
+    }
+
+    foreach ($default_types as $default_type) {
+      $object[$node->vid] = new StateFlow($node);
+    }
+
+  }
+  return $object[$node->vid];
+}
+
+/**
+ * Implementation of hook_ctools_plugin_api().
+ */
+function state_flow_ctools_plugin_api($module, $api) {
+  if ($module == 'state_flow' && $api == 'plugins') {
+    return array('version' => 1);
+  }
+}
+
+/**
+ * Implementation of hook_ctools_plugin_plugins().
+ */
+function state_flow_ctools_plugin_plugins() {
+  return array(
+    'cache' => TRUE,
+    'use hooks' => TRUE,
+  );
+}
+
+/**
+ * Implementation of hook_state_flow_plugins().
+ */
+function state_flow_state_flow_plugins() {
+  $info = array();
+  $path = drupal_get_path('module', 'state_flow') .'/plugins';
+  $info['state_flow'] = array(
+    'handler' => array(
+      'class' => 'StateFlow',
+      'file' => 'state_flow.inc',
+      'path' => $path,
+    ),
+  );
+  return $info;
 }
 
 /**
@@ -196,6 +251,20 @@ function state_flow_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
 
   if (function_exists($node_hook)) {
     return $node_hook($node, $a3, $a4);
+  }
+}
+
+/**
+ * Implementation of hook_node_presave()
+ *
+ * @param object $node
+ */
+function state_flow_node_presave(&$node) {
+  $state_flow = state_flow_load_state_machine($node);
+  $state = $state_flow->get_current_state();
+  if($state == 'published') {
+    //force revision
+    $node->revision = TRUE;
   }
 }
 
@@ -264,7 +333,7 @@ function state_flow_prevent_live_revision($nid) {
 
     // Reset the revision
     $live_version = state_flow_revision_info($revision_state['vid']);
-    db_query("UPDATE {node} SET vid = %d, changed = '%s', title = '%s' WHERE nid = %d", $live_version->vid, $live_version->timestamp, $live_version->title, $node->nid);
+    db_query("UPDATE {node} SET vid = %d, changed = '%s', title = '%s', status = 1 WHERE nid = %d", $live_version->vid, $live_version->timestamp, $live_version->title, $nid);
   }
 }
 

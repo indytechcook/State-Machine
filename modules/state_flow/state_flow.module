@@ -40,7 +40,7 @@ function state_flow_menu_alter(&$items) {
  * @param string $form_id
  */
 function state_flow_form_alter(&$form, $form_state, $form_id) {
-  $node = (object) menu_get_object();
+  $node = menu_get_object();
   $revision = state_flow_live_revision($node->nid);
   if($revision != FALSE) {
     $form['revision_information']['revision']['#disabled'] = true;
@@ -125,7 +125,7 @@ function state_flow_get_states($nid) {
  * Custom form to show the events that are available
  *
  * @param array $form_state
- * @param object $node
+ * @param object $state_flow
  * @return array
  */
 function state_flow_events_form(&$form_state, $state_flow) {
@@ -139,8 +139,8 @@ function state_flow_events_form(&$form_state, $state_flow) {
     '#options' => $events,
   );
 
-  $form['nid'] = array(
-    '#type' => 'value',
+  $form['state_flow'] = array(
+    '#type' => 'hidden',
     '#value' => $state_flow,
   );
 
@@ -162,7 +162,6 @@ function state_flow_events_form_submit($form, &$form_state) {
   $event = $form_state['values']['events'];
   $state_flow = $form_state['values']['state_flow'];
   $state_flow->fire_event($event);
-  $state = $state_flow->get_current_state();
   drupal_set_message(t('Node transitioned to @state state.', array('@state' => $state)));
 }
 
@@ -170,69 +169,22 @@ function state_flow_events_form_submit($form, &$form_state) {
  * Load the state_flow state_machine for the given node.
  */
 function state_flow_load_state_machine($node) {
-  static $object = array();
-
-  if (!isset($object[$node->vid])) {
-    ctools_include('plugins');
-    $plugins = ctools_get_plugins('state_flow', 'plugins');
-    $default_types = node_get_types();
-
-    foreach ($plugins as $key => $info) {
-      $class = $info['handler']['class'];
-      $types = variable_get("state_flow_{$key}", array());
-
-      if (!empty($types)) {
-        $default_types = array_diff($default_types, $types);
-
-        foreach ($types as $type) {
-          $object[$node->vid] = new $class($node);
-        }
-
-      }
-
-    }
-
-    foreach ($default_types as $default_type) {
-      $object[$node->vid] = new StateFlow($node);
-    }
-
+  if (!class_exists('StateFlow')) {
+    require_once drupal_get_path('module', 'state_flow') .'/inc/state_flow.inc';
   }
-  return $object[$node->vid];
-}
-
-/**
- * Implementation of hook_ctools_plugin_api().
- */
-function state_flow_ctools_plugin_api($module, $api) {
-  if ($module == 'state_flow' && $api == 'plugins') {
-    return array('version' => 1);
+  $hook = 'load_state_machine';
+  foreach (module_implements($hook) as $module) {
+    if($module == 'state_flow') {
+      continue;
+    }
+    $function = $module . '_' . $hook;
+    $object = $function($node);
   }
-}
+  if(!($object)) {
+    $object = new StateFlow($node);
+  }
 
-/**
- * Implementation of hook_ctools_plugin_plugins().
- */
-function state_flow_ctools_plugin_plugins() {
-  return array(
-    'cache' => TRUE,
-    'use hooks' => TRUE,
-  );
-}
-
-/**
- * Implementation of hook_state_flow_plugins().
- */
-function state_flow_state_flow_plugins() {
-  $info = array();
-  $path = drupal_get_path('module', 'state_flow') .'/plugins';
-  $info['state_flow'] = array(
-    'handler' => array(
-      'class' => 'StateFlow',
-      'file' => 'state_flow.inc',
-      'path' => $path,
-    ),
-  );
-  return $info;
+  return $object;
 }
 
 /**

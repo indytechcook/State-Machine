@@ -79,7 +79,7 @@ function theme_state_flow_states($states) {
  * @return array
  */
 function state_flow_events($node) {
-  $states = state_flow_get_states($node->nid);
+  $states = state_flow_get_history($node->nid);
   $state_flow = state_flow_load_state_machine($node);
   drupal_set_title('Events');
 
@@ -90,19 +90,19 @@ function state_flow_events($node) {
 }
 
 /**
- * Retrieve the states history for a node
+ * Retrieve the states history for a node.
  *
  * @param int $nid
  * @return array
  */
-function state_flow_get_states($nid) {
+function state_flow_get_history($nid) {
   $query = "SELECT * FROM {node_revision_states} WHERE nid = %d AND status = 1";
   $result = db_query($query ,$nid);
-  $states = array();
+  $history = array();
   while ($record = db_fetch_object($result)) {
-    $states[] = $record;
+    $history[] = $record;
   }
-  return $states;
+  return $history;
 }
 
 /**

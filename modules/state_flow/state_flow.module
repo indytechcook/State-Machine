@@ -33,22 +33,6 @@ function state_flow_menu_alter(&$items) {
 }
 
 /**
- * Implementation of hook_form_alter
- *
- * @param array $form
- * @param array $form_state
- * @param string $form_id
- */
-function state_flow_form_alter(&$form, $form_state, $form_id) {
-  $node = (object) menu_get_object();
-  $revision = state_flow_live_revision($node->nid);
-  if($revision != FALSE) {
-    $form['revision_information']['revision']['#disabled'] = true;
-    $form['revision_information']['revision']['#default_value'] = true;
-  }
-}
-
-/**
  * Implementation of hook_theme()
  *
  * @return array

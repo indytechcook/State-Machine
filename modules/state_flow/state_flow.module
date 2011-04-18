@@ -29,7 +29,7 @@ function state_flow_menu() {
  * @param array $items
  */
 function state_flow_menu_alter(&$items) {
-  $items['node/%node/edit']['page callback'] = 'state_flow_node_edit';
+  $items['node/%node/edit']['page callback'] = 'state_flow_node_page_edit';
 }
 
 /**
@@ -274,7 +274,7 @@ function state_flow_node_revision_delete(&$node) {
  *
  * @param object $node
  */
-function state_flow_node_edit($node) {
+function state_flow_node_page_edit($node) {
   $state_flow = state_flow_load_state_machine($node);
   $vid = $state_flow->get_latest_revision($node->nid);
 

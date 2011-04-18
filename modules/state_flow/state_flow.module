@@ -174,28 +174,14 @@ function state_flow_load_state_machine($node) {
 
   if (!isset($object[$node->vid])) {
     ctools_include('plugins');
-    $plugins = ctools_get_plugins('state_flow', 'plugins');
-    $default_types = node_get_types();
 
-    foreach ($plugins as $key => $info) {
-      $class = $info['handler']['class'];
-      $types = variable_get("state_flow_{$key}", array());
+    $machine_type = variable_get('state_flow_'. $node->type, 'state_flow');
+    $plugin = ctools_get_plugins('state_flow', 'plugins', $machine_type);
 
-      if (!empty($types)) {
-        $default_types = array_diff($default_types, $types);
-
-        foreach ($types as $type) {
-          $object[$node->vid] = new $class($node);
-        }
-
-      }
-
+    if (!empty($plugin)) {
+      $class = ctools_plugin_get_class($plugin, 'handler');
+      $object[$node->vid] = new $class($node);
     }
-
-    foreach ($default_types as $default_type) {
-      $object[$node->vid] = new StateFlow($node);
-    }
-
   }
   return $object[$node->vid];
 }

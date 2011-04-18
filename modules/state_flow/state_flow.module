@@ -123,7 +123,7 @@ function state_flow_events_form(&$form_state, $state_flow) {
     '#options' => $events,
   );
 
-  $form['nid'] = array(
+  $form['state_flow'] = array(
     '#type' => 'value',
     '#value' => $state_flow,
   );

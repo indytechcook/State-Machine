@@ -82,8 +82,9 @@ function state_flow_events($node) {
   $states = state_flow_get_history($node->nid);
   $state_flow = state_flow_load_state_machine($node);
   drupal_set_title('Events');
+  $events = $state_flow->get_available_events();
 
-  $output = ($state_flow->get_current_state() != 'published') ? drupal_get_form('state_flow_events_form', $state_flow) : t('No events to fire');
+  $output = (!empty($events)) ? drupal_get_form('state_flow_events_form', $state_flow) : t('No events to fire');
   $output .= theme('state_flow_states', $states);
 
   return $output;
@@ -168,15 +169,6 @@ function state_flow_load_state_machine($node) {
     }
   }
   return $object[$node->vid];
-}
-
-/**
- * Implementation of hook_ctools_plugin_api().
- */
-function state_flow_ctools_plugin_api($module, $api) {
-  if ($module == 'state_flow' && $api == 'plugins') {
-    return array('version' => 1);
-  }
 }
 
 /**

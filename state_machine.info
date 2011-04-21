@@ -1,6 +1,8 @@
 name = State Machine
 description = Provides a Finite State Machine for Drupal entities.
-core = 6.x
+core = 7.x
 package = "State Machine"
+files[] = state_machine.module
+files[] = state_machine.install
 files[] = inc/base.inc
 files[] = tests/state_machine.test

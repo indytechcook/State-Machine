@@ -40,7 +40,7 @@ function state_flow_menu_alter(&$items) {
 function state_flow_theme() {
   return array(
     'state_flow_states' => array(
-      'arguments' => array('states' => NULL),
+      'variables' => array('states' => NULL),
     ),
   );
 }
@@ -69,7 +69,7 @@ function theme_state_flow_states($states) {
     );
   }
 
-  return theme('table', $header, $rows);
+  return theme('table', array('header' => $header, 'rows' => $rows));
 }
 
 /**
@@ -97,12 +97,21 @@ function state_flow_events($node) {
  * @return array
  */
 function state_flow_get_history($nid) {
-  $query = "SELECT * FROM {node_revision_states} WHERE nid = %d AND status = 1";
-  $result = db_query($query ,$nid);
+  /*
+  $query = "SELECT * FROM {node_revision_states} WHERE nid = :nid AND status = :status";
+  $result = db_query($query, array(':nid' => $nid, ':status' => 1));
   $history = array();
   while ($record = db_fetch_object($result)) {
     $history[] = $record;
   }
+  */
+  $history = db_select('node_revision_states', 'nrs')
+    ->fields('nrs')
+    ->condition('nid', $nid)
+    ->condition('status', 1)
+    ->execute()
+    ->fetchAllAssoc('vid');
+
   return $history;
 }
 

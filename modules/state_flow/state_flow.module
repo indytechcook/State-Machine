@@ -62,10 +62,10 @@ function theme_state_flow_states($states) {
   $rows = array();
   foreach($states as $state) {
     $rows[] = array (
-      $state->vid,
-      $state->nid,
-      $state->state,
-      $state->timestamp,
+      $state['vid'],
+      $state['nid'],
+      $state['state'],
+      $state['timestamp'],
     );
   }
 
@@ -110,7 +110,7 @@ function state_flow_get_history($nid) {
     ->condition('nid', $nid)
     ->condition('status', 1)
     ->execute()
-    ->fetchAllAssoc('vid');
+    ->fetchAll();
 
   return $history;
 }
@@ -209,6 +209,7 @@ function state_flow_state_flow_plugins() {
 /**
  * Implementation of hook_nodeapi().
  */
+/*
 function state_flow_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
   // Use Drupal 7 style node hooks.
   switch ($op) {
@@ -224,6 +225,7 @@ function state_flow_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
     return $node_hook($node, $a3, $a4);
   }
 }
+*/
 
 /**
  * Implementation of hook_node_presave()
@@ -260,14 +262,22 @@ function state_flow_node_update(&$node){
  * Implementation of hook_node_delete().
  */
 function state_flow_node_delete(&$node) {
-  db_query('DELETE FROM {node_revision_states} WHERE nid = %d', $node->nid);
+  //db_query('DELETE FROM {node_revision_states} WHERE nid = %d', $node->nid);
+  $result = db_delete('node_revision_states')
+    ->condition('nid', $node->nid)
+    ->execute();
+  return;
 }
 
 /**
  * Implementation of hook_node_revision_delete().
  */
 function state_flow_node_revision_delete(&$node) {
-  db_query('DELETE FROM {node_revision_states} WHERE vid = %d', $node->vid);
+  //db_query('DELETE FROM {node_revision_states} WHERE vid = %d', $node->vid);
+  $result = db_delete('node_revision_states')
+    ->condition('vid', $node->vid)
+    ->execute();
+  return;
 }
 
 /**
@@ -288,28 +298,26 @@ function state_flow_node_page_edit($node) {
 }
 
 function state_flow_prevent_live_revision($nid) {
-  /**
-   * Borrowed concept from content_moderation module
-   * Check our table for published vid
-   * If exists, update node table with that vid (join node_revision table to grab title, timestamp)
-   */
   $revision_state = state_flow_live_revision($nid);
 
   if($revision_state != NULL) {
-    /* Reset the title.
-    if($node->new_title !== false) {
-      db_query("UPDATE {node_revisions} SET title='%s' WHERE vid=%d",$node->new_title, $node->vid);
-    }
-    */
-
-    // Reset the revision
     $live_version = state_flow_revision_info($revision_state['vid']);
-    db_query("UPDATE {node} SET vid = %d, changed = '%s', title = '%s', status = 1 WHERE nid = %d", $live_version->vid, $live_version->timestamp, $live_version->title, $nid);
+    //db_query("UPDATE {node} SET vid = %d, changed = '%s', title = '%s', status = 1 WHERE nid = %d", $live_version->vid, $live_version->timestamp, $live_version->title, $nid);
+    db_update('node')
+      ->fields(array(
+        'vid' => $live_version['vid'],
+        'changed' => $live_version['timestamp'],
+        'title' => $live_version['title'],
+        'status' => 1,
+      ))
+      ->condition('nid', $nid, '=')
+      ->execute();
   }
 }
 
 function state_flow_live_revision($nid) {
   $state = 'published';
+  /*
   $query = "SELECT *
             FROM {node_revision_states}
             WHERE nid = %d AND state = '%s'
@@ -317,11 +325,28 @@ function state_flow_live_revision($nid) {
             DESC
             LIMIT 1";
   $revision_state = db_fetch_array(db_query($query, $nid, $state));
+  */
+
+  $revision_state = db_select('node_revision_states', 'nrs')
+    ->fields('nrs')
+    ->condition('nid', $nid)
+    ->condition('status', 1)
+    ->condition('state', $state)
+    ->orderBy('timestamp', 'DESC')
+    ->range(0, 1)
+    ->execute()
+    ->fetchAll();
 
   return $revision_state;
 }
 
 function state_flow_revision_info($vid) {
-  $result = db_query('SELECT * FROM {node_revisions} WHERE vid = %d',$vid);
-  return db_fetch_object($result);
+  //$result = db_query('SELECT * FROM {node_revisions} WHERE vid = %d',$vid);
+  $revision_info = db_select('node_revisions', 'nr')
+    ->fields('nr')
+    ->condition('vid', $vid)
+    ->execute()
+    ->fetchAll();
+
+  return $revision_info;
 }

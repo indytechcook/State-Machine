@@ -63,7 +63,7 @@ class StateFlow extends StateMachine {
       'status' => 1,
     );
     $update = ($this->existing_revision($nid, $vid)) ? array('vid') : NULL;
-    $result = drupal_write_record('node_revision_states', $data, $update);
+    $result = drupal_write_record('node_revision_states', &$data, $update);
     return;
   }
 
@@ -92,7 +92,6 @@ class StateFlow extends StateMachine {
   public function set_principle_revision() {
     $nid = $this->object->nid;
     $vid = $this->get_latest_revision($nid);
-    //$result = db_query('UPDATE {node_revision_states} SET status = 0 WHERE nid = %d AND vid != %d', $nid, $vid);
     $result = db_update('node_revision_states')
       ->fields(array(
         'status' => 0,
@@ -104,13 +103,11 @@ class StateFlow extends StateMachine {
   }
 
   public function get_latest_revision($nid) {
-    //$result = db_result(db_query_slave('SELECT MAX(vid) FROM {node_revisions} WHERE nid = %d', $nid));
-    $result = db_query('SELECT MAX(vid) FROM {node_revisions} WHERE nid = :nid', array(':nid' => $nid));
-    return $result->fetch();
+    $result = db_query('SELECT MAX(vid) FROM {node_revision} WHERE nid = :nid', array(':nid' => $nid))->fetchCol();
+    return $result[0];
   }
 
   public function existing_revision($nid, $vid) {
-    //$result = db_result(db_query_slave('SELECT COUNT(*) FROM {node_revision_states} WHERE nid = %d AND vid = %d', $nid, $vid));
     $result = db_select('node_revision_states', 'nrs')
       ->fields('nrs')
       ->condition('nid', $nid)
@@ -118,20 +115,11 @@ class StateFlow extends StateMachine {
       ->condition('vid', $vid)
       ->countQuery()
       ->execute()
-      ->fetch();
-    return ($result) ? TRUE : FALSE;
+      ->fetchAll();
+    return ($result[0]->expression) ? TRUE : FALSE;
   }
 
   public function latest_state($nid) {
-    /*
-    $query = "SELECT state
-              FROM {node_revision_states}
-              WHERE nid = %d AND status = 1 AND vid = %d
-              ORDER BY timestamp
-              DESC
-              LIMIT 1";
-    return db_result(db_query_slave($query, $nid, $this->get_latest_revision($nid)));
-    */
     $latest_state = db_select('node_revision_states', 'nrs')
       ->fields('nrs')
       ->condition('nid', $nid)
@@ -140,7 +128,7 @@ class StateFlow extends StateMachine {
       ->orderBy('timestamp', 'DESC')
       ->range(0, 1)
       ->execute()
-      ->fetch();
+      ->fetchAll();
     return $latest_state;
   }
 }

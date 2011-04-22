@@ -303,7 +303,7 @@ function state_flow_prevent_live_revision($nid) {
   if($revision_state != NULL) {
     $live_version = state_flow_revision_info($revision_state['vid']);
     //db_query("UPDATE {node} SET vid = %d, changed = '%s', title = '%s', status = 1 WHERE nid = %d", $live_version->vid, $live_version->timestamp, $live_version->title, $nid);
-    db_update('node')
+    $result = db_update('node')
       ->fields(array(
         'vid' => $live_version['vid'],
         'changed' => $live_version['timestamp'],

@@ -73,13 +73,11 @@ class StateFlow extends StateMachine {
 
   public function set_published() {
     $this->object->status = 1;
-    //node_save($this->object);
     drupal_write_record('node', $this->object, 'nid');
   }
 
   public function set_unpublished() {
     $this->object->status = 0;
-    //node_save($this->object);
     drupal_write_record('node', $this->object, 'nid');
   }
 
@@ -87,7 +85,6 @@ class StateFlow extends StateMachine {
     $vid = $this->get_latest_revision($this->object->nid);
     if (!empty($vid) && ($vid != $this->object->vid)) {
       $this->object->vid = $vid;
-      //node_save($this->object);
       drupal_write_record('node', $this->object, 'nid');
     }
   }
@@ -95,21 +92,38 @@ class StateFlow extends StateMachine {
   public function set_principle_revision() {
     $nid = $this->object->nid;
     $vid = $this->get_latest_revision($nid);
-    $result = db_query('UPDATE {node_revision_states} SET status = 0 WHERE nid = %d AND vid != %d', $nid, $vid);
+    //$result = db_query('UPDATE {node_revision_states} SET status = 0 WHERE nid = %d AND vid != %d', $nid, $vid);
+    $result = db_update('node_revision_states')
+      ->fields(array(
+        'status' => 0,
+      ))
+      ->condition('nid', $nid, '=')
+      ->condition('vid', $vid, '!=')
+      ->execute();
     return;
   }
 
   public function get_latest_revision($nid) {
-    $result = db_result(db_query_slave('SELECT MAX(vid) FROM {node_revisions} WHERE nid = %d', $nid));
-    return $result;
+    //$result = db_result(db_query_slave('SELECT MAX(vid) FROM {node_revisions} WHERE nid = %d', $nid));
+    $result = db_query('SELECT MAX(vid) FROM {node_revisions} WHERE nid = :nid', array(':nid' => $nid));
+    return $result->fetch();
   }
 
   public function existing_revision($nid, $vid) {
-    $result = db_result(db_query_slave('SELECT COUNT(*) FROM {node_revision_states} WHERE nid = %d AND vid = %d', $nid, $vid));
+    //$result = db_result(db_query_slave('SELECT COUNT(*) FROM {node_revision_states} WHERE nid = %d AND vid = %d', $nid, $vid));
+    $result = db_select('node_revision_states', 'nrs')
+      ->fields('nrs')
+      ->condition('nid', $nid)
+      ->condition('status', 1)
+      ->condition('vid', $vid)
+      ->countQuery()
+      ->execute()
+      ->fetch();
     return ($result) ? TRUE : FALSE;
   }
 
   public function latest_state($nid) {
+    /*
     $query = "SELECT state
               FROM {node_revision_states}
               WHERE nid = %d AND status = 1 AND vid = %d
@@ -117,5 +131,16 @@ class StateFlow extends StateMachine {
               DESC
               LIMIT 1";
     return db_result(db_query_slave($query, $nid, $this->get_latest_revision($nid)));
+    */
+    $latest_state = db_select('node_revision_states', 'nrs')
+      ->fields('nrs')
+      ->condition('nid', $nid)
+      ->condition('status', 1)
+      ->condition('vid', $this->get_latest_revision($nid))
+      ->orderBy('timestamp', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetch();
+    return $latest_state;
   }
 }

@@ -16,6 +16,12 @@ function state_flow_install() {
   drupal_install_schema('state_flow');
 
   db_query("UPDATE {system} SET weight = 5 WHERE name = 'state_flow'");
+  $result = db_update('system')
+      ->fields(array(
+        'weight' => 5,
+      ))
+      ->condition('name', 'state_flow', '=')
+      ->execute();
 }
 
 /**

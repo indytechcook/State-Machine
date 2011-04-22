@@ -55,37 +55,44 @@ class StateFlow extends StateMachine {
     $nid = $this->object->nid;
     $state = $this->get_current_state();
 
-    $data = array(
-      'vid' => $vid,
-      'nid' => $nid,
-      'state' => $state,
-      'timestamp' => time(),
-      'status' => 1,
-    );
-    $update = ($this->existing_revision($nid, $vid)) ? array('vid') : NULL;
+    $data = new stdClass();
+    $data->vid = $vid;
+    $data->nid = $nid;
+    $data->state = $state;
+    $data->timestamp = time();
+    $data->status = 1;
+
+    $update = ($this->existing_revision($nid, $vid)) ? array('vid') : array();
     $result = drupal_write_record('node_revision_states', &$data, $update);
     return;
   }
 
   public function load() {
-    return $this->latest_state($this->object->nid);
+    $state = $this->latest_state($this->object->nid);
+    return $state;
   }
 
   public function set_published() {
     $this->object->status = 1;
-    drupal_write_record('node', $this->object, 'nid');
+    drupal_write_record('node', $this->object, array('nid'));
   }
 
   public function set_unpublished() {
     $this->object->status = 0;
-    drupal_write_record('node', $this->object, 'nid');
+    drupal_write_record('node', $this->object, array('nid'));
   }
 
   public function set_node_revision() {
     $vid = $this->get_latest_revision($this->object->nid);
     if (!empty($vid) && ($vid != $this->object->vid)) {
       $this->object->vid = $vid;
-      drupal_write_record('node', $this->object, 'nid');
+      drupal_write_record('node', $this->object, array('nid'));
+      $result = db_update('node_revision')
+        ->fields(array(
+          'status' => 1,
+        ))
+        ->condition('vid', $vid)
+        ->execute();
     }
   }
 
@@ -96,14 +103,14 @@ class StateFlow extends StateMachine {
       ->fields(array(
         'status' => 0,
       ))
-      ->condition('nid', $nid, '=')
+      ->condition('nid', $nid)
       ->condition('vid', $vid, '!=')
       ->execute();
     return;
   }
 
   public function get_latest_revision($nid) {
-    $result = db_query('SELECT MAX(vid) FROM {node_revision} WHERE nid = :nid', array(':nid' => $nid))->fetchCol();
+    $result = db_query('SELECT MAX(vid) FROM {node_revision} WHERE nid = :nid', array(':nid' => $nid))->fetchCol('vid');
     return $result[0];
   }
 
@@ -120,15 +127,19 @@ class StateFlow extends StateMachine {
   }
 
   public function latest_state($nid) {
+    $state = NULL;
     $latest_state = db_select('node_revision_states', 'nrs')
-      ->fields('nrs')
+      ->fields('nrs', array('state'))
       ->condition('nid', $nid)
       ->condition('status', 1)
       ->condition('vid', $this->get_latest_revision($nid))
       ->orderBy('timestamp', 'DESC')
       ->range(0, 1)
       ->execute()
-      ->fetchAll();
-    return $latest_state;
+      ->fetchCol('state');
+    if(is_array($latest_state) && (array_key_exists(0, $latest_state))) {
+      $state = $latest_state[0];
+    }
+    return $state;
   }
 }

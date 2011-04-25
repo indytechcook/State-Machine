@@ -9,22 +9,7 @@
 state_machine_load_class_file();
 
 class StateFlow extends StateMachine {
-  /**
-   * Called from StateMachine::__construct to initialize the states and events.
-   * Define two states.
-   * First revision:
-   *  - Expose go to draft button
-   *  - Expose go to publish button
-   *  - Upon publish, create new revision (handled outside of state machine)
-   * Second revision:
-   *  - Menu alter edit link to load most recent revision (whether published or revision from states)
-   *  - On hook_nodeapi (op: load), force new revision checkbox on node edit form
-   *    - Expose go to draft button
-   *  - Create new revision, prevent node table from updating new revision as published revision
-   *  - Expose go to publish button
-   *  - Upon publish, set revision id in node table
-   *  - Repeat as needed
-   */
+
   public function init() {
     // Initialize states
     $this->create_state('draft');
@@ -87,13 +72,13 @@ class StateFlow extends StateMachine {
     if (!empty($vid) && ($vid != $this->object->vid)) {
       $this->object->vid = $vid;
       drupal_write_record('node', $this->object, array('nid'));
-      $result = db_update('node_revision')
+    }
+    $result = db_update('node_revision')
         ->fields(array(
           'status' => 1,
         ))
         ->condition('vid', $vid)
         ->execute();
-    }
   }
 
   public function set_principle_revision() {
@@ -128,18 +113,37 @@ class StateFlow extends StateMachine {
 
   public function latest_state($nid) {
     $state = NULL;
-    $latest_state = db_select('node_revision_states', 'nrs')
-      ->fields('nrs', array('state'))
-      ->condition('nid', $nid)
-      ->condition('status', 1)
-      ->condition('vid', $this->get_latest_revision($nid))
-      ->orderBy('timestamp', 'DESC')
-      ->range(0, 1)
-      ->execute()
+    $latest_state = db_query('
+      SELECT state
+      FROM {node_revision_states}
+      WHERE nid = :nid
+      AND status = 1
+      AND vid = :vid
+      ORDER BY timestamp
+      DESC
+      LIMIT 0, 1',
+      array(
+        ':nid' => $nid,
+        ':vid' => $this->get_latest_revision($nid)
+      ))
       ->fetchCol('state');
     if(is_array($latest_state) && (array_key_exists(0, $latest_state))) {
       $state = $latest_state[0];
     }
     return $state;
+  }
+}
+
+class StateFlowEvent extends StateMachine_Event {
+  public function validate() {
+    if(parent::validate()) {
+      if (!empty($this->options['permission'])) {
+        if (call_user_func($this->options['permission'], $this) === FALSE) {
+          return FALSE;
+        }
+      }
+      return TRUE;
+    }
+    return FALSE;
   }
 }

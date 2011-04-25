@@ -12,10 +12,6 @@
  * Implementation of hook_install().
  */
 function state_flow_install() {
-  // Create tables.
-  drupal_install_schema('state_flow');
-
-  //db_query("UPDATE {system} SET weight = 5 WHERE name = 'state_flow'");
   $result = db_update('system')
       ->fields(array(
         'weight' => 5,
@@ -44,13 +40,4 @@ function state_flow_schema() {
   );
 
   return $schema;
-}
-
-
-/**
- * Implementation of hook_uninstall().
- */
-function state_flow_uninstall() {
-  // Remove tables.
-  drupal_uninstall_schema('state_flow');
 }

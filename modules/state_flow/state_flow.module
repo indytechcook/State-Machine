@@ -99,14 +99,6 @@ function state_flow_events($node) {
  * @return array
  */
 function state_flow_get_history($nid) {
-  /*
-  $query = "SELECT * FROM {node_revision_states} WHERE nid = :nid AND status = :status";
-  $result = db_query($query, array(':nid' => $nid, ':status' => 1));
-  $history = array();
-  while ($record = db_fetch_object($result)) {
-    $history[] = $record;
-  }
-  */
   $history = db_select('node_revision_states', 'nrs')
     ->fields('nrs')
     ->condition('nid', $nid)
@@ -309,25 +301,25 @@ function state_flow_prevent_live_revision($nid) {
 
 function state_flow_live_revision($nid) {
   $state = 'published';
-  $revision_state = db_select('node_revision_states', 'nrs')
-    ->fields('nrs')
-    ->condition('nid', $nid)
-    ->condition('status', 1)
-    ->condition('state', $state)
-    ->orderBy('timestamp', 'DESC')
-    ->range(0, 1)
-    ->execute()
-    ->fetchAll();
+  $revision_state = db_query('
+      SELECT *
+      FROM {node_revision_states}
+      WHERE nid = :nid
+      AND status = 1
+      AND state = :state
+      ORDER BY timestamp
+      DESC
+      LIMIT 0, 1',
+      array(
+        ':nid' => $nid,
+        ':state' => $state,
+      ))
+      ->fetchAll();
 
   return $revision_state;
 }
 
 function state_flow_revision_info($vid) {
-  $revision_info = db_select('node_revision', 'nr')
-    ->fields('nr')
-    ->condition('vid', $vid)
-    ->execute()
-    ->fetchAll();
-
+  $revision_info = db_query('SELECT * FROM {node_revision} WHERE vid = :vid', array(':vid' => $vid))->fetchAll();
   return $revision_info;
 }

@@ -195,7 +195,7 @@ class StateMachine {
   public function get_available_events() {
     $events = array();
     foreach (array_keys($this->events) as $key) {
-      if ($this->get_event($key)->can_transition_from($this->current)) {
+      if ($this->get_event($key)->can_transition_from($this->get_current_state())) {
         $events[] = $key;
       }
     }

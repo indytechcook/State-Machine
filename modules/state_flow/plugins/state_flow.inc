@@ -9,22 +9,6 @@
 state_machine_load_class_file();
 
 class StateFlow extends StateMachine {
-  /**
-   * Called from StateMachine::__construct to initialize the states and events.
-   * Define two states.
-   * First revision:
-   *  - Expose go to draft button
-   *  - Expose go to publish button
-   *  - Upon publish, create new revision (handled outside of state machine)
-   * Second revision:
-   *  - Menu alter edit link to load most recent revision (whether published or revision from states)
-   *  - On hook_nodeapi (op: load), force new revision checkbox on node edit form
-   *    - Expose go to draft button
-   *  - Create new revision, prevent node table from updating new revision as published revision
-   *  - Expose go to publish button
-   *  - Upon publish, set revision id in node table
-   *  - Repeat as needed
-   */
   public function init() {
     // Initialize states
     $this->create_state('draft');
@@ -73,13 +57,11 @@ class StateFlow extends StateMachine {
 
   public function set_published() {
     $this->object->status = 1;
-    //node_save($this->object);
     drupal_write_record('node', $this->object, 'nid');
   }
 
   public function set_unpublished() {
     $this->object->status = 0;
-    //node_save($this->object);
     drupal_write_record('node', $this->object, 'nid');
   }
 
@@ -87,7 +69,6 @@ class StateFlow extends StateMachine {
     $vid = $this->get_latest_revision($this->object->nid);
     if (!empty($vid) && ($vid != $this->object->vid)) {
       $this->object->vid = $vid;
-      //node_save($this->object);
       drupal_write_record('node', $this->object, 'nid');
     }
   }
@@ -117,5 +98,19 @@ class StateFlow extends StateMachine {
               DESC
               LIMIT 1";
     return db_result(db_query_slave($query, $nid, $this->get_latest_revision($nid)));
+  }
+}
+
+class StateFlowEvent extends StateMachine_Event {
+  public function validate() {
+    if(parent::validate()) {
+      if (!empty($this->options['permission'])) {
+        if (call_user_func($this->options['permission'], $this) === FALSE) {
+          return FALSE;
+        }
+      }
+      return TRUE;
+    }
+    return FALSE;
   }
 }

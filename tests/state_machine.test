@@ -1,5 +1,8 @@
 <?php
-
+/**
+ * @file
+ * state_machine.test
+ */
 state_machine_load_class_file();
 
 class StateMachine_Test extends StateMachine {

@@ -1,180 +1,67 @@
 <?php
+
 /**
  * @file
- * A base implementation of the state machine class and its relationship to revisions
+ * An implementation of node revision workflow for Drupal based on the
+ * State Machine system.
  */
 
 /**
- * Implementation of hook_menu().
- *
+ * Implements hook_menu().
  */
 function state_flow_menu() {
   $items = array();
-  $items['node/%node/events'] = array(
-      'title' => 'Events',
-      'description' => 'The available events',
-      'type' => MENU_LOCAL_TASK,
-      'page callback' => 'state_flow_events',
-      'page arguments' => array(1),
-      'access callback' => TRUE,
-      'weight' => 10,
+  $items['node/%node/workflow'] = array(
+    'title' => 'Workflow',
+    'description' => 'Information about the workflow status of this content',
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'state_flow_events',
+    'page arguments' => array(1),
+    'access callback' => 'node_access',
+    'access arguments' => array('update', 1),
+    'weight' => 10,
+    'file' => 'state_flow.pages.inc',
+  );
+  $items['node/%node/revisions/%/edit'] = array(
+    'title' => 'Edit an earlier revision',
+    'load arguments' => array(3),
+    'page callback' => 'node_page_edit',
+    'page arguments' => array(1, TRUE),
+    'access callback' => 'node_access',
+    'access arguments' => array('update', 1),
+    'file' => 'node.pages.inc',
+    'file path' => drupal_get_path('module', 'node'),
+  );
+  $items['node/%node/revisions/%/workflow'] = array(
+    'title' => 'Transition a revision to a new workflow state',
+    'load arguments' => array(3),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('state_flow_events_revision', 1, 5),
+    'access callback' => 'state_flow_events_revisions_access',
+    'access arguments' => array(1, 5),
+    'file' => 'state_flow.pages.inc',
   );
   return $items;
 }
 
 /**
- * Implementation of hook_menu_alter
- * Change the edit link so the most recent revision is always edited
- *
- * @param array $items
+ * Implements hook_admin_paths().
  */
-function state_flow_menu_alter(&$items) {
-  $items['node/%node/edit']['page callback'] = 'state_flow_node_page_edit';
-}
-
-/**
- * Implementation of hook_theme()
- *
- * @return array
- */
-function state_flow_theme() {
-  return array(
-    'state_flow_states' => array(
-      'variables' => array('states' => NULL),
-    ),
-  );
-}
-
-/**
- * Theme function to show states of a node
- *
- * @param array $states
- * @return string
- */
-function theme_state_flow_states($states) {
-  $header = array(
-    t('Vid'),
-    t('Nid'),
-    t('State'),
-    t('Timestamp'),
-  );
-
-  $rows = array();
-  foreach($states as $state) {
-    if(is_object($state)) {
-      $rows[] = array (
-        $state->vid,
-        $state->nid,
-        $state->state,
-        $state->timestamp,
-      );
-    }
+function state_flow_admin_paths() {
+  if (variable_get('node_admin_theme')) {
+    $paths = array(
+      'node/*/workflow' => TRUE,
+      'node/*/revisions/*/edit' => TRUE,
+      'node/*/revisions/*/workflow' => TRUE,
+      'node/*/revisions/*/workflow/*' => TRUE,
+    );
+    return $paths;
   }
-
-  return theme('table', array('header' => $header, 'rows' => $rows));
 }
 
 /**
- * Show the states as a node tab
- *
- * @param object $node
- * @return array
+ * Implements hook_ctools_plugin_directory().
  */
-function state_flow_events($node) {
-  $states = state_flow_get_history($node->nid);
-  $state_flow = state_flow_load_state_machine($node);
-  drupal_set_title('Events');
-  $events = $state_flow->get_available_events();
-
-  $output = (!empty($events)) ? drupal_render(drupal_get_form('state_flow_events_form', $state_flow)) : t('No events to fire');
-  $output .= theme('state_flow_states', $states);
-
-  return $output;
-}
-
-/**
- * Retrieve the states history for a node.
- *
- * @param int $nid
- * @return array
- */
-function state_flow_get_history($nid) {
-  $history = db_select('node_revision_states', 'nrs')
-    ->fields('nrs')
-    ->condition('nid', $nid)
-    ->condition('status', 1)
-    ->execute()
-    ->fetchAll();
-
-  return $history;
-}
-
-/**
- * Custom form to show the events that are available
- *
- * @param array $form_state
- * @param object $node
- * @return array
- */
-function state_flow_events_form(&$form_state, $args) {
-  $form = array();
-  $state_flow = $args['build_info']['args'][0];
-  $events = $state_flow->get_available_events();
-
-  $form['events'] = array(
-    '#type' => 'radios',
-    '#title' => t('Fire event'),
-    '#options' => drupal_map_assoc($events),
-  );
-
-  $form['state_flow'] = array(
-    '#type' => 'value',
-    '#value' => $state_flow,
-  );
-
-  $form['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Update'),
-  );
-
-  return $form;
-}
-
-/**
- * Implementation of hook_form_submit
- *
- * @param array $form
- * @param array $form_state
- */
-function state_flow_events_form_submit($form, &$form_state) {
-  $event = $form_state['values']['events'];
-  $state_flow = $form_state['values']['state_flow'];
-  $state_flow->fire_event($event);
-  $state = $state_flow->get_current_state();
-  drupal_set_message(t('Node transitioned to @state state.', array('@state' => $state)));
-}
-
-/**
- * Load the state_flow state_machine for the given node.
- */
-function state_flow_load_state_machine($node) {
-  static $object = array();
-
-  if (!isset($object[$node->vid])) {
-    ctools_include('plugins');
-
-    $machine_type = variable_get('state_flow_'. $node->type, 'state_flow');
-    $plugin = ctools_get_plugins('state_flow', 'plugins', $machine_type);
-
-    if (!empty($plugin)) {
-      $class = ctools_plugin_get_class($plugin, 'handler');
-      $state_flow_object = new $class($node);
-      $object[$node->vid] = $state_flow_object;
-    }
-  }
-  return $object[$node->vid];
-}
-
 function state_flow_ctools_plugin_directory($module, $plugin) {
   if ($module == 'state_flow') {
     return 'plugins/' . $plugin;
@@ -182,9 +69,7 @@ function state_flow_ctools_plugin_directory($module, $plugin) {
 }
 
 /**
- * Implementation of hook_ctools_plugin_type().
- *
- * @return array
+ * Implements hook_ctools_plugin_type().
  */
 function state_flow_ctools_plugin_type() {
   $plugins = array(
@@ -197,11 +82,11 @@ function state_flow_ctools_plugin_type() {
 }
 
 /**
- * Implementation of hook_state_flow_plugins().
+ * Implements hook_state_flow_plugins().
  */
 function state_flow_state_flow_plugins() {
   $info = array();
-  $path = drupal_get_path('module', 'state_flow') .'/plugins';
+  $path = drupal_get_path('module', 'state_flow') . '/plugins';
   $info['state_flow'] = array(
     'handler' => array(
       'class' => 'StateFlow',
@@ -213,92 +98,263 @@ function state_flow_state_flow_plugins() {
 }
 
 /**
- * Implementation of hook_node_presave()
- *
- * @param object $node
+ * Implements hook_node_presave().
  */
-function state_flow_node_presave(&$node) {
-  if($node->nid) {
+function state_flow_node_presave($node) {
+  // If the node is not new and is not marked to be ignored by
+  // state_flow_promote_node_revision(), then check its current state.
+  if (!empty($node->nid) && empty($node->state_flow_ignore_state)) {
     $state_flow = state_flow_load_state_machine($node);
     $state = $state_flow->get_current_state();
-    if($state == 'published') {
-      //force revision
+    if ($state == 'published') {
+      // If the node being updated is in the published state, then ensure that
+      // changes are saved to a new revision.
       $node->revision = TRUE;
+    }
+    else if ($state != 'draft') {
+      // If the node being updated is not in the draft state, then mark this
+      // node to be reverted to draft state.
+      $node->state_flow_revert_draft = TRUE;
     }
   }
 }
 
 /**
- * Implementation of hook_node_insert().
+ * Implements hook_node_insert().
  */
-function state_flow_node_insert(&$node) {
+function state_flow_node_insert($node) {
+  global $user;
   $state_flow = state_flow_load_state_machine($node);
   $state_flow->persist();
+  $state_flow->write_history($user->uid);
 }
 
 /**
- * Implementation of hook_node_update().
+ * Implements hook_node_update().
  */
-function state_flow_node_update(&$node){
+function state_flow_node_update($node) {
+  global $user;
   $state_flow = state_flow_load_state_machine($node);
-  $state_flow->persist();
-  state_flow_prevent_live_revision($node->nid);
+  if (!empty($node->state_flow_revert_draft)) {
+    $state_flow->fire_event('to draft');
+  }
+  else {
+    $state_flow->persist();
+    if (!empty($node->revision)) {
+      $state_flow->write_history($user->uid);
+    }
+  }
+  state_flow_prevent_live_revision($node);
 }
 
 /**
- * Implementation of hook_node_delete().
+ * Implements hook_node_delete().
  */
-function state_flow_node_delete(&$node) {
+function state_flow_node_delete($node) {
   $result = db_delete('node_revision_states')
     ->condition('nid', $node->nid)
     ->execute();
-  return;
+  $result = db_delete('node_revision_states_history')
+    ->condition('nid', $node->nid)
+    ->execute();
 }
 
 /**
- * Implementation of hook_node_revision_delete().
+ * Implements hook_node_revision_delete().
  */
-function state_flow_node_revision_delete(&$node) {
+function state_flow_node_revision_delete($node) {
   $result = db_delete('node_revision_states')
     ->condition('vid', $node->vid)
     ->execute();
-  return;
+  $result = db_delete('node_revision_states_history')
+    ->condition('vid', $node->vid)
+    ->execute();
 }
 
 /**
- * Helper function to to load the lastest revision on node edit
- *
- * @param object $node
+ * Menu access callback for the node revision workflow transition page.
  */
-function state_flow_node_page_edit($node) {
+function state_flow_events_revisions_access($node, $event_name = NULL) {
+  return !empty($event_name) ? state_flow_access($node, $event_name) : node_access('update', $node);
+}
+
+/**
+ * Determine whether a user has permission to transition a node with an event.
+ */
+function state_flow_access($node, $event_name, $account = NULL) {
+  global $user;
+
+  // If no user account is given, then use the current user.
+  if (empty($account)) {
+    $account = $user;
+  }
+
+  // If the user cannot edit the node, then deny access to any events.
+  if (!node_access('update', $node, $account)) {
+    return FALSE;
+  }
+
+  // Load the state machine for the node and test whether the event is allowed.
   $state_flow = state_flow_load_state_machine($node);
-  $vid = $state_flow->get_latest_revision($node->nid);
-
-  //Load the latest revision if it doesn't match what is part of the node
-  if($node->vid != $vid) {
-    $node = node_load($node->nid, $vid);
-  }
-
-  return node_page_edit($node);
+  $state_event = $state_flow ? $state_flow->get_event($event_name) : FALSE;
+  return $state_event ? $state_event->validate() : FALSE;
 }
 
-function state_flow_prevent_live_revision($nid) {
-  $revision_state = state_flow_live_revision($nid);
+/**
+ * Retrieve the states history for a node.
+ */
+function state_flow_get_history($nid) {
+  $history = db_query('
+    SELECT nrsh.*, u.uid, u.name AS user_name
+    FROM {node_revision_states_history} nrsh
+    LEFT JOIN {users} u ON u.uid = nrsh.uid
+    WHERE nrsh.nid = :nid
+    ORDER BY nrsh.timestamp DESC',
+    array(
+      ':nid' => $nid
+    ))->fetchAll();
+  return $history;
+}
 
-  if($revision_state != NULL) {
-    $live_version = state_flow_revision_info($revision_state[0]->vid);
-    $result = db_update('node')
+/**
+ * Load the state_flow state_machine for the given node.
+ */
+function state_flow_load_state_machine($node) {
+  static $object = array();
+
+  if (!isset($object[$node->vid])) {
+    ctools_include('plugins');
+
+    $machine_type = variable_get('state_flow_' . $node->type, 'state_flow');
+    $plugin = ctools_get_plugins('state_flow', 'plugins', $machine_type);
+
+    if (!empty($plugin)) {
+      $class = ctools_plugin_get_class($plugin, 'handler');
+      $state_flow_object = new $class($node);
+      $object[$node->vid] = $state_flow_object;
+    }
+  }
+  return $object[$node->vid];
+}
+
+/**
+ * Checks whether the version of the node being saved is in the published state,
+ * and if not, re-saves the latest published revision.
+ *
+ * To prevent field content of a draft node revision from being used as the
+ * published version, we need to re-save the current published version after
+ * any draft revision is saved.
+ *
+ * In Drupal 7, the old approach of "munging the node vid" is not compatible
+ * with fields. See: http://drupal.org/node/1184318
+ */
+function state_flow_prevent_live_revision($node) {
+  // If this node is marked to be ignored by state_flow_promote_node_revision(),
+  // then skip handling it.
+  if (!empty($node->state_flow_ignore_state)) {
+    return;
+  }
+
+  // If the revision being saved is not the current published version, then
+  // ensure that the published version is re-saved to make it the most recent.
+  $published_revision = state_flow_live_revision($node->nid);
+  if (!empty($published_revision[0]->vid) && $published_revision[0]->vid != $node->vid) {
+    state_flow_promote_node_revision($published_revision[0], $node->nid, $published_revision[0]->vid);
+  }
+}
+
+/**
+ * Promote a node revision to be the most current by loading and re-saving it.
+ * If the given node revision is not the most recent, then re-save it as a new
+ * revision. Also update related metadata from the node, node_revision,
+ * node_revision_states, and node_revision_states_history tables. Finally,
+ * delete the original revision if a new revision is created.
+ */
+function state_flow_promote_node_revision($rev_state_rec, $nid, $current_vid) {
+  // Load data about the current revision
+  $current_rev = node_load($nid, $current_vid);
+  $current_timestamp = !empty($current_rev->revision_timestamp) ? $current_rev->revision_timestamp : REQUEST_TIME;
+
+  // Determine the latest revision of this node
+  $latest_vid = db_query('
+    SELECT nr.vid
+    FROM {node_revision} nr
+    WHERE nr.nid = :nid
+    ORDER BY nr.vid DESC
+    LIMIT 0, 1',
+    array(':nid' => $nid))->fetchField();
+
+  // Re-save the node. Create a new revision if the given revision is not the
+  // most recent.
+  $current_rev->revision = ($latest_vid > $current_vid) ? TRUE : FALSE;
+  $current_rev->state_flow_ignore_state = TRUE;
+  node_save($current_rev);
+  // node_save() has updated the $current_rev object, so it is the new revision.
+  $new_rev = $current_rev;
+
+  // Set the node.changed and the node_revision.timestamp value to the
+  // timestamp of the published revision
+  $res = db_update('node')
+    ->fields(array('changed' => $current_timestamp))
+    ->condition('vid', $new_rev->vid)
+    ->execute();
+  $res = db_update('node_revision')
+    ->fields(array('timestamp' => $current_timestamp))
+    ->condition('vid', $new_rev->vid)
+    ->execute();
+
+  // If a new revision was created, update state_flow records for the revision.
+  if ($new_rev->revision) {
+    // Update the node_revision_states record for the new published revision
+    // to match the old revision
+    $res = db_update('node_revision_states')
       ->fields(array(
-        'vid' => $live_version[0]->vid,
-        'changed' => $live_version[0]->timestamp,
-        'title' => $live_version[0]->title,
-        'status' => 1,
+        'state' => $rev_state_rec->state,
+        'status' => $rev_state_rec->status,
+        'timestamp' => $rev_state_rec->timestamp,
       ))
-      ->condition('nid', $nid)
+      ->condition('vid', $new_rev->vid)
       ->execute();
+
+    // Delete any node_revision_states_history records associated with the new
+    // revision (created during hook_node_insert) which will refer to the new
+    // version as a draft
+    db_delete('node_revision_states_history')
+      ->condition('vid', $new_rev->vid)
+      ->execute();
+
+    // Change all node_revision_states_history records for the old revision
+    // to be associated with the new revision
+    $res = db_update('node_revision_states_history')
+      ->fields(array('vid' => $new_rev->vid))
+      ->condition('vid', $current_vid)
+      ->execute();
+
+    // Delete the old published revision (that has been cloned)
+    node_revision_delete($current_vid);
   }
 }
 
+/**
+ * Helper function to return all node_revision_states records for a node.
+ */
+function state_flow_get_revisions($nid) {
+  $revisions = db_query('
+    SELECT *
+    FROM {node_revision_states}
+    WHERE nid = :nid
+    ORDER BY vid DESC',
+    array(
+      ':nid' => $nid,
+    ))
+    ->fetchAll();
+  return $revisions;
+}
+
+/**
+ * Helper function to return node_revision_states records for all published
+ * revisions of a node.
+ */
 function state_flow_live_revision($nid) {
   $state = 'published';
   $revision_state = db_query('
@@ -307,19 +363,12 @@ function state_flow_live_revision($nid) {
       WHERE nid = :nid
       AND status = 1
       AND state = :state
-      ORDER BY timestamp
-      DESC
+      ORDER BY vid DESC
       LIMIT 0, 1',
       array(
         ':nid' => $nid,
         ':state' => $state,
       ))
       ->fetchAll();
-
   return $revision_state;
-}
-
-function state_flow_revision_info($vid) {
-  $revision_info = db_query('SELECT * FROM {node_revision} WHERE vid = :vid', array(':vid' => $vid))->fetchAll();
-  return $revision_info;
 }

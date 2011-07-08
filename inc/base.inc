@@ -1,5 +1,8 @@
 <?php
-
+/**
+ * @file
+ * base.inc
+ */
 class StateMachine {
   protected $states = array();
   protected $events = array();
@@ -248,9 +251,14 @@ class StateMachine_Event {
   }
 
   /**
-   * Validate the transition by processing the guard condition.
+   * Validate that the given event can take place.
    */
-  protected function validate() {
+  public function validate() {
+    // Check that the current state is a valid origin for the given transition.
+    if (!in_array($this->machine->get_current_state(), $this->options['origin'])) {
+      return FALSE;
+    }
+
     // Execute guard condition if it exists.
     if (!empty($this->options['guard'])) {
       if (call_user_func($this->options['guard'], $this) === FALSE) {
@@ -261,14 +269,9 @@ class StateMachine_Event {
   }
 
   /**
-   * Execute the event. Tests to make sure the current state is a valid origin
-   * state, checks the guard condition,
+   * Execute the event.
    */
   public function execute() {
-    if (!in_array($this->machine->get_current_state(), $this->options['origin'])) {
-      return FALSE;
-    }
-
     if (!$this->validate()) {
       return FALSE;
     }

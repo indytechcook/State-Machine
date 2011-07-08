@@ -260,6 +260,11 @@ function state_flow_prevent_live_revision($node) {
   $published_revision = state_flow_live_revision($node->nid);
   if (!empty($published_revision[0]->vid) && $published_revision[0]->vid != $node->vid) {
     state_flow_promote_node_revision($published_revision[0], $node->nid, $published_revision[0]->vid);
+
+    // When a draft is saved and does not become the current revision, then
+    // redirect the user to the revision saved. This hijacks the redirection by
+    // drupal_goto().
+    $_GET['destination'] = 'node/' . $node->nid . '/revisions/' . $node->vid . '/view';
   }
 }
 

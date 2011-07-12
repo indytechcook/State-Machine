@@ -17,8 +17,8 @@ function state_flow_menu() {
     'type' => MENU_LOCAL_TASK,
     'page callback' => 'state_flow_events',
     'page arguments' => array(1),
-    'access callback' => 'node_access',
-    'access arguments' => array('update', 1),
+    'access callback' => 'state_flow_menu_node_access',
+    'access arguments' => array(1),
     'weight' => 10,
     'file' => 'state_flow.pages.inc',
   );
@@ -42,6 +42,18 @@ function state_flow_menu() {
     'file' => 'state_flow.pages.inc',
   );
   return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function state_flow_permission() {
+  return array(
+    'access content workflow' => array(
+      'title' => t('Access content workflow'),
+      'description' => t('Access the content workflow pages and operations.'),
+    ),
+  );
 }
 
 /**
@@ -172,10 +184,26 @@ function state_flow_node_revision_delete($node) {
 }
 
 /**
+ * Menu access callback for accessing the node workflow pages.
+ */
+function state_flow_menu_node_access($node, $account = NULL) {
+  global $user;
+
+  // If no user account is given, then use the current user.
+  if (empty($account)) {
+    $account = $user;
+  }
+
+  // If the user has the "access content workflow" permission, then allow access
+  // to workflow pages.
+  return user_access('access content workflow', $account);
+}
+
+/**
  * Menu access callback for the node revision workflow transition page.
  */
 function state_flow_events_revisions_access($node, $event_name = NULL) {
-  return !empty($event_name) ? state_flow_access($node, $event_name) : node_access('update', $node);
+  return !empty($event_name) ? state_flow_access($node, $event_name) : state_flow_menu_node_access($node);
 }
 
 /**
@@ -190,7 +218,7 @@ function state_flow_access($node, $event_name, $account = NULL) {
   }
 
   // If the user cannot edit the node, then deny access to any events.
-  if (!node_access('update', $node, $account)) {
+  if (!state_flow_menu_node_access($node, $account)) {
     return FALSE;
   }
 

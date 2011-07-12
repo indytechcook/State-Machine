@@ -103,6 +103,9 @@ class StateFlow extends StateMachine {
 
       // Allow the event to "finish".
       $event->finish();
+
+      // Allow state_flow to provide other hooks or event triggers.
+      state_flow_invoke_event_handlers($this->object, $new_state);
     }
     else {
       $this->on_event_fail($event);

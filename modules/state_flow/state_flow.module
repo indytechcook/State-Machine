@@ -94,6 +94,23 @@ function state_flow_ctools_plugin_type() {
 }
 
 /**
+ * Implements hook_entity_property_info_alter().
+ *
+ * Adds a "state" property on nodes that are configured with state flow.
+ */
+function state_flow_entity_property_info_alter(&$info) {
+  foreach ($info['node']['bundles'] as $entity_type => $entity_info) {
+    if (variable_get('state_flow_' . $entity_type, '')) {
+      $info['node']['bundles'][$entity_type]['properties']['state'] = array(
+        'label' => t('Workflow state'),
+        'description' => t('The current workflow state for this node revision.'),
+        'getter callback' => 'state_flow_entity_get_state',
+      );
+    }
+  }
+}
+
+/**
  * Implements hook_state_flow_plugins().
  */
 function state_flow_state_flow_plugins() {
@@ -236,6 +253,28 @@ function state_flow_access($node, $event_name, $account = NULL) {
   $state_flow = state_flow_load_state_machine($node);
   $state_event = $state_flow ? $state_flow->get_event($event_name) : FALSE;
   return $state_event ? $state_event->validate() : FALSE;
+}
+
+/**
+ * Getter callback for the "state" property on node bundles using workflow.
+ */
+function state_flow_entity_get_state($data, $options, $name, $type, $info) {
+  $state_flow = state_flow_load_state_machine($data);
+  return $state_flow->get_current_state();
+}
+
+/**
+ * Inform external systems about a workflow transition.
+ */
+function state_flow_invoke_event_handlers($object, $state) {
+  // Load related objects
+  $node = node_load($object->nid, $object->vid);
+  $author = user_load($node->uid);
+
+  // Invoke the Rules state_flow_event_fired event.
+  if (module_exists('rules')) {
+    rules_invoke_event('state_flow_event_fired', $node, $author, $state);
+  }
 }
 
 /**

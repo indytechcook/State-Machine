@@ -137,8 +137,7 @@ class StateFlow extends StateMachine {
   }
 
   public function load() {
-    $state = (!empty($this->object->vid)) ? $this->revision_state($this->object->vid) : $this->latest_state($this->object->nid);
-    return $state;
+    return !empty($this->object->vid) ? $this->revision_state($this->object->vid) : $this->latest_state($this->object->nid);
   }
 
   public function set_published() {
@@ -242,12 +241,11 @@ class StateFlow extends StateMachine {
       ->condition('nid', $nid)
       ->condition('vid', $vid, '!=')
       ->execute();
-    return;
   }
 
   public function get_latest_revision($nid) {
     $result = db_query('SELECT MAX(vid) FROM {node_revision} WHERE nid = :nid', array(':nid' => $nid))->fetchCol('vid');
-    return $result[0];
+    return !empty($result[0]) ? $result[0] : FALSE;
   }
 
   public function existing_revision($nid, $vid) {
@@ -261,7 +259,6 @@ class StateFlow extends StateMachine {
   }
 
   public function revision_state($vid) {
-    $state = NULL;
     $latest_state = db_query('
       SELECT state
       FROM {node_revision_states}
@@ -271,10 +268,7 @@ class StateFlow extends StateMachine {
         ':vid' => $vid
       ))
       ->fetchCol('state');
-    if (is_array($latest_state) && !empty($latest_state[0])) {
-      $state = $latest_state[0];
-    }
-    return $state;
+    return !empty($latest_state[0]) ? $latest_state[0] : FALSE;
   }
 
   public function revision_state_record($nid, $vid = NULL) {
@@ -305,7 +299,6 @@ class StateFlow extends StateMachine {
   }
 
   public function latest_state($nid) {
-    $state = NULL;
     $latest_state = db_query('
       SELECT state
       FROM {node_revision_states}
@@ -319,10 +312,7 @@ class StateFlow extends StateMachine {
         ':vid' => $this->get_latest_revision($nid)
       ))
       ->fetchCol('state');
-    if (is_array($latest_state) && !empty($latest_state[0])) {
-      $state = $latest_state[0];
-    }
-    return $state;
+    return !empty($latest_state[0]) ? $latest_state[0] : FALSE;
   }
 }
 

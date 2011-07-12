@@ -110,6 +110,16 @@ function state_flow_state_flow_plugins() {
 }
 
 /**
+ * Implements hook_views_api().
+ */
+function state_flow_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'state_flow') . '/includes/views',
+  );
+}
+
+/**
  * Implements hook_node_presave().
  */
 function state_flow_node_presave($node) {

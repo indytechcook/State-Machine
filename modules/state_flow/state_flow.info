@@ -6,7 +6,16 @@ description = A base implementation of the State Machine
 dependencies[] = state_machine
 dependencies[] = ctools
 package = "State Machine"
+
+; Core code
 files[] = state_flow.module
 files[] = state_flow.install
 files[] = plugins/state_flow.inc
+
+; Tests
 files[] = tests/state_flow.test
+
+; Views includes
+files[] = includes/views/state_flow.view.inc
+files[] = includes/views/state_flow_handler_field_events.inc
+files[] = includes/views/state_flow_handler_field_workflow_link.inc

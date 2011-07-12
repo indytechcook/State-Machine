@@ -135,7 +135,7 @@ function state_flow_node_insert($node) {
 function state_flow_node_update($node) {
   global $user;
   $state_flow = state_flow_load_state_machine($node);
-  if (!empty($node->state_flow_revert_draft)) {
+  if (!empty($node->state_flow_revert_draft) && $state_flow->get_current_state() !== 'draft') {
     $state_flow->fire_event('to draft');
   }
   else {
@@ -361,7 +361,7 @@ function state_flow_get_revisions($nid) {
  * revisions of a node.
  */
 function state_flow_live_revision($nid) {
-  $state = 'published';
+  $state = variable_get('state_flow_published_state', 'published');
   $revision_state = db_query('
       SELECT *
       FROM {node_revision_states}

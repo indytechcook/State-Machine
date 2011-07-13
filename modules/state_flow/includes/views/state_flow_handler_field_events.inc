@@ -16,7 +16,7 @@ class state_flow_handler_field_events extends views_handler_field {
     $state_actions = array();
     foreach ($state_events as $event) {
       if (state_flow_access($state_node, $event)) {
-        $state_actions[] = l(drupal_ucfirst(t($event)), 'node/' . $state_node->nid . '/revisions/' . $state_node->vid . '/workflow/' . $event) . ' ';
+        $state_actions[] = l(drupal_ucfirst(t($event)), 'node/' . $state_node->nid . '/revisions/' . $state_node->vid . '/workflow/' . $event, array('query' => array('destination' => $_GET['q']))) . ' ';
       }
     }
     $state_actions_str = implode(' | ', $state_actions);

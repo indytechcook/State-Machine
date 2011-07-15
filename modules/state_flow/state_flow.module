@@ -223,7 +223,12 @@ function state_flow_menu_node_access($node, $account = NULL) {
 
   // If the user has the "access content workflow" permission, then allow access
   // to workflow pages.
-  return user_access('access content workflow', $account);
+  $access = user_access('access content workflow', $account);
+
+  // Allow other modules to alter this decision
+  drupal_alter('state_flow_menu_node_access', $access, $node, $account);
+
+  return $access;
 }
 
 /**

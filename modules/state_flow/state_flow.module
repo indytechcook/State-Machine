@@ -274,10 +274,10 @@ function state_flow_entity_get_state($data, $options, $name, $type, $info) {
 function state_flow_invoke_event_handlers($object, $state) {
   // Load related objects
   $node = node_load($object->nid, $object->vid);
-  $author = user_load($node->uid);
+  $author = !empty($node->uid) ? user_load($node->uid) : drupal_anonymous_user();
 
   // Invoke the Rules state_flow_event_fired event.
-  if (module_exists('rules')) {
+  if ($node && module_exists('rules')) {
     rules_invoke_event('state_flow_event_fired', $node, $author, $state);
   }
 }

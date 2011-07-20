@@ -44,7 +44,7 @@ function state_flow_events($node) {
     $vid = intval($state->vid);
     $path_view = ($vid == $node->vid) ? 'node/' . $node->nid : 'node/' . $node->nid . '/revisions/' . $vid . '/view';
     $state_date_str = format_date($state->timestamp, 'short');
-    if (($state->status && $state->state != 'published') || (!$state->status && $vid != $node->vid)) {
+    if (($state->status && !($state->state === 'published' && $vid == $node->vid)) || (!$state->status && $vid != $node->vid)) {
       $state_node = node_load($node->nid, $vid);
       $state_state_flow = state_flow_load_state_machine($state_node);
       $state_events = $state_state_flow->get_available_events();

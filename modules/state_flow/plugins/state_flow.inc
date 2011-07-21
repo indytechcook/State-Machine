@@ -76,6 +76,10 @@ class StateFlow extends StateMachine {
     return $this->object;
   }
 
+  public function get_states_options() {
+    return $this->states;
+  }
+
   /**
    * Extending fire_event() from state_machine's base.inc to add uid and log
    * arguments.
@@ -140,7 +144,14 @@ class StateFlow extends StateMachine {
   }
 
   public function load() {
-    return !empty($this->object->vid) ? $this->revision_state($this->object->vid) : $this->latest_state($this->object->nid);
+    $state = FALSE;
+    if (!empty($this->object->vid)) {
+      $state = $this->revision_state($this->object->vid);
+    }
+    elseif (!empty($this->object->nid)) {
+      $state = $this->latest_state($this->object->nid);
+    }
+    return $state;
   }
 
   public function set_published() {

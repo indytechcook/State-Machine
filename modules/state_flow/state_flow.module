@@ -362,6 +362,24 @@ function state_flow_promote_node_revision($rev_state_rec, $nid, $current_vid) {
   $current_rev = node_load($nid, $current_vid);
   $current_timestamp = !empty($current_rev->revision_timestamp) ? $current_rev->revision_timestamp : REQUEST_TIME;
 
+  // From workbench_moderation:
+  // Path module is stupid and doesn't load its data in node_load.
+  if (module_exists('path') && isset($current_rev->nid)) {
+    $path = array();
+    $conditions = array(
+      'source' => 'node/' . $current_rev->nid,
+      'language' => isset($current_rev->language) ? $current_rev->language : LANGUAGE_NONE,
+    );
+    $path = path_load($conditions);
+    if ($path === FALSE) {
+      $path = array();
+    }
+    if (isset($current_rev->path)) {
+      $path += $current_rev->path;
+    }
+    $current_rev->path = $path;
+  }
+
   // Determine the latest revision of this node
   $latest_vid = db_query('
     SELECT nr.vid

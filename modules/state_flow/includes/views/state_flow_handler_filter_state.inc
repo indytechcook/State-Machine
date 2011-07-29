@@ -21,7 +21,7 @@ class state_flow_handler_filter_state extends views_handler_filter_in_operator {
     foreach ($this->view->filter as $key => $value) {
       if (get_class($value) === 'views_handler_filter_node_type') {
         $type_names = FALSE;
-        if (!empty($this->view->exposed_input[$key])) {
+        if (!empty($this->view->exposed_input[$key]) && !empty($this->view->filter[$key]->value_options) && array_key_exists($this->view->exposed_input[$key], $this->view->filter[$key]->value_options)) {
           $type_names = array($this->view->exposed_input[$key]);
         }
         elseif (!empty($this->view->filter[$key]->options['value'])) {

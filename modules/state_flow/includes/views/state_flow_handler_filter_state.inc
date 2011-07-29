@@ -8,7 +8,8 @@
 class state_flow_handler_filter_state extends views_handler_filter_in_operator {
 
   /**
-   * Provide 
+   * Provide value options for the state filter based on available workflow
+   * states for any content types that could be included in this view.
    */
   function get_value_options() {
     if (isset($this->value_options)) {

@@ -35,7 +35,7 @@ function state_flow_views_data() {
       'handler' => 'views_handler_sort',
     ),
     'filter' => array(
-      'handler' => 'views_handler_filter_string',
+      'handler' => 'state_flow_handler_filter_state',
     ),
     'argument' => array(
       'handler' => 'views_handler_argument_string',

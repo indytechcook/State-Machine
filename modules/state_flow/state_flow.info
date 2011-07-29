@@ -19,3 +19,4 @@ files[] = tests/state_flow.test
 files[] = includes/views/state_flow.view.inc
 files[] = includes/views/state_flow_handler_field_events.inc
 files[] = includes/views/state_flow_handler_field_workflow_link.inc
+files[] = includes/views/state_flow_handler_filter_state.inc

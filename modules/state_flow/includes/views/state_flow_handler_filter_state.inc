@@ -19,17 +19,19 @@ class state_flow_handler_filter_state extends views_handler_filter_in_operator {
     // Determine the content types that could be part of this view. If the node
     // type filter is enabled, then limit to the selected types.
     $node_types = array();
-    foreach ($this->view->filter as $key => $value) {
-      if (get_class($value) === 'views_handler_filter_node_type') {
-        $type_names = FALSE;
-        if (!empty($this->view->exposed_input[$key]) && !empty($this->view->filter[$key]->value_options) && array_key_exists($this->view->exposed_input[$key], $this->view->filter[$key]->value_options)) {
-          $type_names = array($this->view->exposed_input[$key]);
-        }
-        elseif (!empty($this->view->filter[$key]->options['value'])) {
-          $type_names = $this->view->filter[$key]->options['value'];
-        }
-        if (is_array($type_names)) {
-          $node_types += $type_names;
+    if (isset($this->view->filter) && is_array($this->view->filter)) {
+      foreach ($this->view->filter as $key => $value) {
+        if (get_class($value) === 'views_handler_filter_node_type') {
+          $type_names = FALSE;
+          if (!empty($this->view->exposed_input[$key]) && !empty($this->view->filter[$key]->value_options) && array_key_exists($this->view->exposed_input[$key], $this->view->filter[$key]->value_options)) {
+            $type_names = array($this->view->exposed_input[$key]);
+          }
+          elseif (!empty($this->view->filter[$key]->options['value'])) {
+            $type_names = $this->view->filter[$key]->options['value'];
+          }
+          if (is_array($type_names)) {
+            $node_types += $type_names;
+          }
         }
       }
     }

@@ -301,10 +301,10 @@ function state_flow_get_history($nid) {
 /**
  * Load the state_flow state_machine for the given node.
  */
-function state_flow_load_state_machine($node) {
-  static $object = array();
+function state_flow_load_state_machine($node, $reset = FALSE) {
+  $objects = &drupal_static(__FUNCTION__);
 
-  if (!isset($object[$node->vid])) {
+  if (!isset($objects[$node->vid]) && !$reset) {
     ctools_include('plugins');
 
     $machine_type = variable_get('state_flow_' . $node->type, 'state_flow');
@@ -313,10 +313,10 @@ function state_flow_load_state_machine($node) {
     if (!empty($plugin)) {
       $class = ctools_plugin_get_class($plugin, 'handler');
       $state_flow_object = new $class($node);
-      $object[$node->vid] = $state_flow_object;
+      $objects[$node->vid] = $state_flow_object;
     }
   }
-  return $object[$node->vid];
+  return $objects[$node->vid];
 }
 
 /**

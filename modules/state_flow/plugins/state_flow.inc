@@ -174,7 +174,7 @@ class StateFlow extends StateMachine {
     if (is_array($published_revs)) {
       foreach ($published_revs as $rev) {
         $rev_vid = isset($rev->vid) ? intval($rev->vid) : FALSE;
-        $rev_node = node_load($this->object->nid, $rev_vid);
+        $rev_node = $rev_vid ? node_load($this->object->nid, $rev_vid) : FALSE;
         if ($rev_node) {
           $rev_state = state_flow_load_state_machine($rev_node);
           $rv = $rev_state->fire_event('unpublish', NULL, t('Unpublished due to the publication of revision @vid.', array('@vid' => $this->object->vid)));

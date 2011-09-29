@@ -17,7 +17,7 @@ class StateMachine {
   }
 
   /**
-   * Initialize the state machine using the provided addState and addEvent
+   * Initialize the state machine using the provided create_state and create_event
    * methods.
    */
   protected function init() {}
